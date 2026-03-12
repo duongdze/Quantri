@@ -1,4 +1,6 @@
 <?php
+require_once 'models/TourCategory.php';
+
 class ClientTourController
 {
     protected $model;
@@ -6,6 +8,39 @@ class ClientTourController
     public function __construct()
     {
         $this->model = new Tour();
+    }
+
+    /**
+     * Trang chủ – listing tours với filter & pagination
+     */
+    public function index()
+    {
+        $filters = [
+            'keyword'     => trim($_GET['keyword']     ?? ''),
+            'category_id' => (int)($_GET['category_id'] ?? 0) ?: null,
+            'price_min'   => (float)($_GET['price_min']  ?? 0) ?: null,
+            'price_max'   => (float)($_GET['price_max']  ?? 0) ?: null,
+            'sort_by'     => $_GET['sort_by']  ?? 'created_at',
+            'sort_dir'    => $_GET['sort_dir'] ?? 'DESC',
+        ];
+
+        $page    = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 9;
+
+        $result = $this->model->getAllTours($page, $perPage, array_filter($filters, fn($v) => $v !== null && $v !== ''));
+
+        $tours       = $result['data'];
+        $totalPages  = $result['total_pages'];
+        $total       = $result['total'];
+
+        // Lấy danh mục để hiển thị filter
+        $categoryModel = new TourCategory();
+        $categories    = $categoryModel->getAllCategories();
+
+        $success = $_SESSION['success'] ?? null;
+        unset($_SESSION['success']);
+
+        require_once PATH_VIEW_CLIENT . 'pages/tours/index.php';
     }
 
     public function detail()

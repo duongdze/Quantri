@@ -3,10 +3,12 @@ $action = $_GET['action'] ?? '/';
 
 switch ($action) {
     case '/':
-        // Homepage placeholder
-        echo "<h1>Trang chủ (Đang cập nhật)</h1>";
+    case 'tour-list':
+        require_once 'controller/client/TourController.php';
+        $controller = new ClientTourController();
+        $controller->index();
         break;
-        
+
     case 'tour-detail':
         require_once 'controller/client/TourController.php';
         $controller = new ClientTourController();
@@ -36,9 +38,43 @@ switch ($action) {
         $controller = new ClientBookingController();
         $controller->success();
         break;
+
+    case 'login':
+        require_once 'controller/client/AuthController.php';
+        $controller = new AuthController();
+        $controller->showLogin();
+        break;
+
+    case 'login-post':
+        require_once 'controller/client/AuthController.php';
+        $controller = new AuthController();
+        $controller->login();
+        break;
+
+    case 'register':
+        require_once 'controller/client/AuthController.php';
+        $controller = new AuthController();
+        $controller->showRegister();
+        break;
+
+    case 'register-post':
+        require_once 'controller/client/AuthController.php';
+        $controller = new AuthController();
+        $controller->register();
+        break;
+
+    case 'logout':
+        require_once 'controller/client/AuthController.php';
+        $controller = new AuthController();
+        $controller->logout();
+        break;
         
     default:
-        // 404 placeholder
-        echo "<h1>404 Not Found</h1>";
+        http_response_code(404);
+        echo "<div style='text-align:center;padding:100px 20px;font-family:Inter,sans-serif'>
+                <h1 style='font-size:5rem;color:#1e6fff;margin:0'>404</h1>
+                <p style='color:#6b7280'>Trang bạn tìm không tồn tại.</p>
+                <a href='" . BASE_URL . "' style='color:#1e6fff;font-weight:600'>← Về trang chủ</a>
+              </div>";
         break;
 }

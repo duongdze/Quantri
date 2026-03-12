@@ -354,10 +354,8 @@ $departures = $departures ?? [];
                         </div>
                     </div>
 
-                    <!-- Step 4: Pricing & Departures -->
+                    <!-- Step 4: Departures -->
                     <div class="form-step" id="step-4">
-
-                        <!-- Tour Departures -->
                         <div class="card mb-4">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">
@@ -365,52 +363,112 @@ $departures = $departures ?? [];
                                     Lịch khởi hành
                                 </h5>
                                 <button type="button" class="btn btn-sm btn-primary" onclick="addDeparture()">
-                                    <i class="fas fa-plus me-1"></i>
-                                    Thêm lịch
+                                    <i class="fas fa-plus me-1"></i> Thêm lịch
                                 </button>
                             </div>
-                            <div class="card-body">
-                                <div id="departures-list" class="departures-list">
-                                    <?php if (!empty($departures)): ?>
-                                        <?php foreach ($departures as $index => $departure): ?>
-                                            <div class="departure-item border rounded p-3 mb-3">
-                                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                                    <h6 class="mb-0">Lịch khởi hành</h6>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDepartureItem(this)">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
-                                                <div class="row g-3">
-                                                    <div class="col-md-6">
-                                                        <div class="form-floating">
-                                                            <input type="date" class="form-control departure-date" value="<?= $departure['departure_date'] ?>" required>
-                                                            <label>Ngày khởi hành</label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="form-floating">
-                                                            <select class="form-select departure-status">
-                                                                <option value="open" <?= ($departure['status'] ?? 'open') === 'open' ? 'selected' : '' ?>>Mở</option>
-                                                                <option value="full" <?= ($departure['status'] ?? '') === 'full' ? 'selected' : '' ?>>Hết chỗ</option>
-                                                                <option value="guaranteed" <?= ($departure['status'] ?? '') === 'guaranteed' ? 'selected' : '' ?>>Đảm bảo</option>
-                                                                <option value="closed" <?= ($departure['status'] ?? '') === 'closed' ? 'selected' : '' ?>>Đóng</option>
-                                                            </select>
-                                                            <label>Trạng thái</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                            <div class="card-body p-0">
+                                <div class="row g-0">
+
+                                    <!-- LEFT: Mini Calendar Overview -->
+                                    <div class="col-lg-4 border-end">
+                                        <div class="p-3">
+                                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="calPrevMonth()">
+                                                    <i class="fas fa-chevron-left"></i>
+                                                </button>
+                                                <strong id="cal-month-label" class="text-primary" style="font-size:.95rem"></strong>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="calNextMonth()">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
                                             </div>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="text-center text-muted py-4" id="departures-empty" style="<?= !empty($departures) ? 'display: none;' : '' ?>">
-                                    <i class="fas fa-calendar-plus fa-3x mb-3"></i>
-                                    <p>Chưa có lịch khởi hành nào</p>
-                                    <button type="button" class="btn btn-outline-primary" onclick="addDeparture()">
-                                        <i class="fas fa-plus me-2"></i>
-                                        Thêm lịch đầu tiên
-                                    </button>
-                                </div>
+                                            <!-- Calendar Grid -->
+                                            <div id="cal-grid" style="font-size:.80rem">
+                                                <!-- Generated by JS -->
+                                            </div>
+                                            <!-- Legend -->
+                                            <div class="mt-3 d-flex flex-column gap-1" style="font-size:.78rem;color:#6b7280">
+                                                <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-right:5px"></span> Mở đăng ký</div>
+                                                <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:5px"></span> Đảm bảo / Hết chỗ</div>
+                                                <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:5px"></span> Đóng</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- RIGHT: Departure List -->
+                                    <div class="col-lg-8">
+                                        <div class="p-3">
+                                            <div id="departures-list">
+                                                <?php if (!empty($departures)): ?>
+                                                    <?php foreach ($departures as $index => $departure): ?>
+                                                        <div class="departure-item border rounded p-3 mb-3" data-date="<?= $departure['departure_date'] ?>" data-status="<?= $departure['status'] ?? 'open' ?>">
+                                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <span class="badge bg-<?= match($departure['status'] ?? 'open') { 'open'=>'success','guaranteed'=>'warning','full'=>'warning','closed'=>'danger',default=>'secondary' } ?>">
+                                                                        <?= match($departure['status'] ?? 'open') { 'open'=>'Mở','guaranteed'=>'Đảm bảo','full'=>'Hết chỗ','closed'=>'Đóng',default=>'Mở' } ?>
+                                                                    </span>
+                                                                    <strong style="font-size:.92rem"><?= date('d/m/Y', strtotime($departure['departure_date'])) ?></strong>
+                                                                </div>
+                                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDepartureItem(this)">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                            <div class="row g-2">
+                                                                <div class="col-md-6">
+                                                                    <div class="form-floating">
+                                                                        <input type="date" class="form-control form-control-sm departure-date"
+                                                                               value="<?= $departure['departure_date'] ?>" required
+                                                                               onchange="syncCalendar()">
+                                                                        <label>Ngày khởi hành</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <div class="form-floating">
+                                                                        <select class="form-select form-select-sm departure-status" onchange="syncCalendar()">
+                                                                            <option value="open" <?= ($departure['status'] ?? 'open') === 'open' ? 'selected' : '' ?>>Mở đăng ký</option>
+                                                                            <option value="guaranteed" <?= ($departure['status'] ?? '') === 'guaranteed' ? 'selected' : '' ?>>Đảm bảo</option>
+                                                                            <option value="full" <?= ($departure['status'] ?? '') === 'full' ? 'selected' : '' ?>>Hết chỗ</option>
+                                                                            <option value="closed" <?= ($departure['status'] ?? '') === 'closed' ? 'selected' : '' ?>>Đóng</option>
+                                                                        </select>
+                                                                        <label>Trạng thái</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div class="form-floating">
+                                                                        <input type="number" class="form-control form-control-sm departure-price-adult"
+                                                                               value="<?= $departure['price_adult'] ?? 0 ?>" min="0" step="10000" placeholder=" ">
+                                                                        <label>Giá NL (VNĐ)</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div class="form-floating">
+                                                                        <input type="number" class="form-control form-control-sm departure-price-child"
+                                                                               value="<?= $departure['price_child'] ?? 0 ?>" min="0" step="10000" placeholder=" ">
+                                                                        <label>Giá TE (VNĐ)</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div class="form-floating">
+                                                                        <input type="number" class="form-control form-control-sm departure-max-seats"
+                                                                               value="<?= $departure['max_seats'] ?? 20 ?>" min="1" placeholder=" ">
+                                                                        <label>Số chỗ tối đa</label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="text-center text-muted py-4" id="departures-empty" style="<?= !empty($departures) ? 'display: none;' : '' ?>">
+                                                <i class="fas fa-calendar-plus fa-2x mb-2"></i>
+                                                <p class="mb-2">Chưa có lịch khởi hành nào</p>
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addDeparture()">
+                                                    <i class="fas fa-plus me-1"></i> Thêm lịch đầu tiên
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div><!-- /row -->
                             </div>
                         </div>
                     </div>
@@ -690,29 +748,50 @@ $departures = $departures ?? [];
 </template>
 
 <template id="departure-template">
-    <div class="departure-item border rounded p-3 mb-3">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <h6 class="mb-0">Lịch khởi hành</h6>
+    <div class="departure-item border rounded p-3 mb-3" data-date="" data-status="open">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-success departure-badge">Mở đăng ký</span>
+                <strong class="departure-date-label" style="font-size:.92rem">Chưa chọn ngày</strong>
+            </div>
             <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDepartureItem(this)">
                 <i class="fas fa-trash"></i>
             </button>
         </div>
-        <div class="row g-3">
+        <div class="row g-2">
             <div class="col-md-6">
                 <div class="form-floating">
-                    <input type="date" class="form-control departure-date" required>
+                    <input type="date" class="form-control form-control-sm departure-date" required onchange="syncCalendar(); updateDepartureLabel(this)">
                     <label>Ngày khởi hành</label>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="form-floating">
-                    <select class="form-select departure-status">
-                        <option value="open">Mở</option>
+                    <select class="form-select form-select-sm departure-status" onchange="syncCalendar(); updateDepartureBadge(this)">
+                        <option value="open">Mở đăng ký</option>
+                        <option value="guaranteed">Đảm bảo chạy</option>
                         <option value="full">Hết chỗ</option>
-                        <option value="guaranteed">Đảm bảo</option>
                         <option value="closed">Đóng</option>
                     </select>
                     <label>Trạng thái</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-floating">
+                    <input type="number" class="form-control form-control-sm departure-price-adult" value="0" min="0" step="10000" placeholder=" ">
+                    <label>Giá NL (VNĐ)</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-floating">
+                    <input type="number" class="form-control form-control-sm departure-price-child" value="0" min="0" step="10000" placeholder=" ">
+                    <label>Giá TE (VNĐ)</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-floating">
+                    <input type="number" class="form-control form-control-sm departure-max-seats" value="20" min="1" placeholder=" ">
+                    <label>Số chỗ tối đa</label>
                 </div>
             </div>
         </div>
@@ -932,29 +1011,147 @@ $departures = $departures ?? [];
         const container = document.getElementById('departures-list');
         container.appendChild(clone);
 
-        // Hide empty state
         document.getElementById('departures-empty').style.display = 'none';
 
         updateDepartureData();
+        syncCalendar();
     }
 
     function removeDepartureItem(button) {
         button.closest('.departure-item').remove();
+        const items = document.querySelectorAll('.departure-item');
+        if (items.length === 0) {
+            document.getElementById('departures-empty').style.display = 'block';
+        }
         updateDepartureData();
+        syncCalendar();
     }
 
     function updateDepartureData() {
         const departures = [];
-        document.querySelectorAll('.departure-item').forEach((item, index) => {
+        document.querySelectorAll('.departure-item').forEach((item) => {
             departures.push({
-                departure_date: item.querySelector('.departure-date').value,
-                max_seats: item.querySelector('.departure-max-seats').value,
-
-                status: item.querySelector('.departure-status').value
+                departure_date:  item.querySelector('.departure-date').value,
+                status:          item.querySelector('.departure-status').value,
+                price_adult:     item.querySelector('.departure-price-adult')?.value || 0,
+                price_child:     item.querySelector('.departure-price-child')?.value || 0,
+                max_seats:       item.querySelector('.departure-max-seats')?.value   || 20,
             });
         });
         document.getElementById('tour_departures').value = JSON.stringify(departures);
     }
+
+    // ── Departure label / badge helpers ──────────────────────
+    function updateDepartureLabel(input) {
+        const item = input.closest('.departure-item');
+        if (!item) return;
+        const label = item.querySelector('.departure-date-label');
+        if (label && input.value) {
+            const d = new Date(input.value);
+            label.textContent = d.toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit',year:'numeric'});
+        }
+        item.dataset.date = input.value;
+    }
+
+    function updateDepartureBadge(select) {
+        const item = select.closest('.departure-item');
+        if (!item) return;
+        const badge = item.querySelector('.departure-badge');
+        const map = {
+            open:        { cls: 'bg-success',  text: 'Mở đăng ký' },
+            guaranteed:  { cls: 'bg-warning text-dark', text: 'Đảm bảo' },
+            full:        { cls: 'bg-warning text-dark', text: 'Hết chỗ' },
+            closed:      { cls: 'bg-danger',   text: 'Đóng' },
+        };
+        const m = map[select.value] || map.open;
+        if (badge) { badge.className = `badge ${m.cls} departure-badge`; badge.textContent = m.text; }
+        item.dataset.status = select.value;
+    }
+
+    // ── Mini Calendar ─────────────────────────────────────────
+    let calYear  = new Date().getFullYear();
+    let calMonth = new Date().getMonth(); // 0-based
+
+    const MONTH_NAMES = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
+                         'Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+    const DAY_NAMES   = ['CN','T2','T3','T4','T5','T6','T7'];
+
+    function syncCalendar() {
+        updateDepartureData();
+        renderCalendar();
+    }
+
+    function calPrevMonth() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
+    function calNextMonth() { calMonth++; if (calMonth > 11) { calMonth = 0;  calYear++; } renderCalendar(); }
+
+    function renderCalendar() {
+        const label = document.getElementById('cal-month-label');
+        const grid  = document.getElementById('cal-grid');
+        if (!label || !grid) return;
+
+        label.textContent = `${MONTH_NAMES[calMonth]} ${calYear}`;
+
+        // Collect departure dates with status from form
+        const depMap = {};
+        document.querySelectorAll('.departure-item').forEach(item => {
+            const dateVal = item.querySelector('.departure-date')?.value;
+            const status  = item.querySelector('.departure-status')?.value || 'open';
+            if (dateVal) depMap[dateVal] = status;
+        });
+
+        const colorMap = {
+            open:       '#22c55e',
+            guaranteed: '#f59e0b',
+            full:       '#f59e0b',
+            closed:     '#ef4444',
+        };
+
+        const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+        const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+        const today = new Date().toISOString().slice(0, 10);
+
+        let html = `<table style="width:100%;border-collapse:collapse;table-layout:fixed">
+            <thead><tr>`;
+        DAY_NAMES.forEach(d => {
+            html += `<th style="text-align:center;padding:3px 0;color:#9ca3af;font-weight:600">${d}</th>`;
+        });
+        html += `</tr></thead><tbody><tr>`;
+
+        // Empty cells before first day
+        for (let i = 0; i < firstDay; i++) {
+            html += `<td style="padding:2px"></td>`;
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const col = (firstDay + day - 1) % 7;
+            const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const status  = depMap[dateStr];
+            const isToday = dateStr === today;
+            const dot     = status ? colorMap[status] || '#6b7280' : null;
+
+            let cellStyle = `text-align:center;padding:3px 0;position:relative;`;
+            let numStyle  = `display:inline-block;width:24px;height:24px;line-height:24px;border-radius:50%;font-size:.78rem;`;
+            if (isToday)  numStyle += `border:1.5px solid #1e6fff;font-weight:700;`;
+            if (status)   numStyle += `background:${dot};color:white;font-weight:700;`;
+
+            html += `<td style="${cellStyle}"><span style="${numStyle}">${day}</span></td>`;
+
+            if (col === 6 && day < daysInMonth) html += `</tr><tr>`;
+        }
+        html += `</tr></tbody></table>`;
+        grid.innerHTML = html;
+    }
+
+    // Init calendar when step-4 becomes visible
+    document.addEventListener('DOMContentLoaded', () => {
+        const observer = new MutationObserver(() => {
+            const s4 = document.getElementById('step-4');
+            if (s4 && s4.classList.contains('active')) renderCalendar();
+        });
+        const s4 = document.getElementById('step-4');
+        if (s4) observer.observe(s4, { attributes: true, attributeFilter: ['class'] });
+    });
+
 
     // Partner Management
     function addPartner() {

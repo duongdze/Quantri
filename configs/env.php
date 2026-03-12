@@ -1,7 +1,7 @@
 <?php
 
-define('BASE_URL', 'http://localhost/Duan1/');
-define('BASE_URL_ADMIN', 'http://localhost/Duan1/?mode=admin');
+define('BASE_URL', 'http://localhost/Quantriagile/');
+define('BASE_URL_ADMIN', 'http://localhost/Quantriagile/?mode=admin');
 
 define('PATH_ROOT',                 __DIR__ . '/../');
 
