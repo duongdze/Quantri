@@ -1,0 +1,155 @@
+/* 
+=====================
+ 1.Start login css
+===================== 
+*/
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  text-decoration: none;
+  list-style-type: none;
+  border: none;
+  outline: none;
+  font-family: Poppins, sans-serif;
+  /* color: #fff; */
+}
+
+.login-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: url("https://i.postimg.cc/RFqSM2rc/bg.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+.login-container {
+  width: 400px;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(13px);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  padding: 30px 35px;
+}
+
+.login-title {
+  font-size: 38px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.login-input-group {
+  position: relative;
+  width: 100%;
+  height: 55px;
+  margin: 30px 0;
+}
+
+.login-input {
+  background: transparent;
+  width: 100%;
+  height: 100%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  padding: 20px 45px 20px 20px;
+  font-size: 16px;
+}
+
+.login-input::placeholder {
+  color: #fff;
+  font-size: 16px;
+}
+
+input::placeholder {
+  color: #fff;
+  font-size: 16px;
+}
+
+.login-input__icon {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #fff;
+}
+
+.login-remember {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -16px 0 16px;
+}
+
+.login-remember__checkbox {
+  accent-color: #fff;
+  margin-right: 4px;
+}
+
+.login-remember__link {
+  color: #fff;
+  text-decoration: none;
+}
+
+.login-remember__link:hover {
+  text-decoration: underline;
+}
+
+.login-submit {
+  display: inline-block;
+  background: #fff;
+  color: #0a2862;
+  width: 100%;
+  border-radius: 30px;
+  font-size: 16px;
+  height: 45px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  margin-bottom: 30px;
+  margin-top: 16px;
+}
+
+.login-social {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.login-social__link {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.login-social__icon {
+  font-size: 20px;
+  margin-right: 8px;
+}
+
+.login-social__link:hover {
+  opacity: 0.8;
+}
+
+input[type="checkbox"] {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* 
+=====================
+ End login css
+===================== 
+*/

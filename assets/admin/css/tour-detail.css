@@ -1,0 +1,51 @@
+.tour-main .price-badge {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.tour-gallery .thumb-item img {
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+
+.tour-gallery .thumb-item img:hover {
+  transform: scale(1.04);
+}
+
+.position-sticky {
+  z-index: 2;
+}
+
+/* simple lightbox */
+.td-lightbox {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1050;
+}
+
+.td-lightbox img {
+  max-width: 100%;
+  max-height: 95%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+}
+
+@media (max-width: 992px) {
+  .position-sticky {
+    position: static !important;
+  }
+
+  .tour-main img {
+    height: auto !important;
+  }
+}

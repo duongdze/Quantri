@@ -1,0 +1,225 @@
+/* =========================================
+   1. GLOBAL VARIABLES & RESET
+   ========================================= */
+:root {
+    --primary-color: #008C72; /* Teal Green - Natural & Professional */
+    --primary-dark: #006b56;
+    --secondary-color: #FF6B6B; /* Soft Red - Accent */
+    --text-color: #2c3e50;
+    --text-light: #6c757d;
+    --bg-light: #f8f9fa;
+    --white: #ffffff;
+    --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    --border-radius: 12px;
+    --transition: all 0.3s ease;
+}
+
+body {
+    font-family: 'Outfit', 'Segoe UI', sans-serif; /* Modern Font */
+    color: var(--text-color);
+    background-color: #fff;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+a {
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+/* =========================================
+   2. UTILITIES & ANIMATIONS
+   ========================================= */
+.text-primary { color: var(--primary-color) !important; }
+.bg-primary { background-color: var(--primary-color) !important; }
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.text-shadow {
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.shadow-soft {
+    box-shadow: var(--box-shadow);
+}
+
+/* Hover Lift Effect */
+.hover-lift {
+    transition: var(--transition);
+}
+.hover-lift:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* =========================================
+   3. COMPONENTS
+   ========================================= */
+
+/* --- HERO SECTION --- */
+.tour-hero {
+    position: relative;
+    height: 70vh !important;
+}
+
+.tour-hero img {
+    filter: brightness(0.6); /* Darken image for text readability */
+    transition: transform 5s ease;
+}
+
+.tour-hero:hover img {
+    transform: scale(1.05); /* Subtle zoom effect */
+}
+
+.tour-hero .hero-content {
+    z-index: 2;
+}
+
+/* --- INFO CARDS (Overview) --- */
+.info-card-box {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: var(--transition);
+}
+.info-card-box:hover {
+    background: var(--bg-light);
+    border-color: var(--primary-color);
+}
+.info-card-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(0, 140, 114, 0.1);
+    color: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem auto;
+    font-size: 1.5rem;
+}
+
+/* --- GALLERY --- */
+.gallery-img {
+    height: 220px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.gallery-img:hover {
+    filter: brightness(0.9);
+    transform: scale(1.02);
+}
+
+/* --- TIMELINE ITINERARY --- */
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+    border-left: 2px solid #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 2.5rem;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -2.6rem;
+    top: 0;
+    width: 40px;
+    height: 40px;
+    background: var(--primary-color);
+    color: var(--white);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    border: 4px solid #fff;
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.timeline-content {
+    background: var(--bg-light);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    position: relative;
+}
+.timeline-content::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    top: 15px;
+    width: 20px;
+    height: 20px;
+    background: var(--bg-light);
+    transform: rotate(45deg);
+}
+
+/* --- BOOKING SIDEBAR --- */
+.booking-card {
+    border: none;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.booking-card .card-header {
+    background: var(--white);
+    border-bottom: 1px solid #eee;
+    padding: 1.5rem;
+}
+
+.booking-price {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--primary-color);
+}
+
+.booking-form .form-select {
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+.booking-form .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(0, 140, 114, 0.25);
+}
+
+.btn-book-now {
+    background: var(--secondary-color);
+    border: none;
+    padding: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: var(--transition);
+}
+.btn-book-now:hover {
+    background: #ff5252;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+}
+
+/* --- POLICY CARDS --- */
+.policy-card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-left: 4px solid var(--primary-color);
+    transition: var(--transition);
+}
+.policy-card:hover {
+    box-shadow: var(--box-shadow);
+}

@@ -1,0 +1,172 @@
+/* Tour Logs Page Styles */
+
+/* Page Header */
+.tour-logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.tour-logs-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1f2d3d;
+    margin: 0;
+}
+
+/* Card Container */
+.tour-logs-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+/* Table Styles */
+.tour-logs-table {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.tour-logs-table thead {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.tour-logs-table thead th {
+    padding: 14px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    border-bottom: none;
+}
+
+.tour-logs-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+}
+
+.tour-logs-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.tour-logs-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.tour-logs-table tbody td {
+    padding: 12px;
+    font-size: 14px;
+    color: #495057;
+    vertical-align: middle;
+}
+
+/* Truncated Text Cells */
+.log-cell-truncate {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.log-cell-truncate:hover {
+    overflow: visible;
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* Action Buttons */
+.log-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.log-actions .btn {
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.log-actions .btn:hover {
+    transform: translateY(-1px);
+}
+
+.log-actions form {
+    display: inline-block;
+    margin: 0;
+}
+
+/* Empty State */
+.tour-logs-empty {
+    padding: 60px 20px;
+    text-align: center;
+    color: #6c757d;
+}
+
+.tour-logs-empty i {
+    font-size: 48px;
+    color: #dee2e6;
+    margin-bottom: 16px;
+}
+
+.tour-logs-empty p {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .log-cell-truncate {
+        max-width: 140px;
+    }
+}
+
+@media (max-width: 992px) {
+    .tour-logs-table {
+        font-size: 13px;
+    }
+
+    .tour-logs-table thead th,
+    .tour-logs-table tbody td {
+        padding: 10px 8px;
+    }
+
+    .log-cell-truncate {
+        max-width: 120px;
+    }
+}
+
+@media (max-width: 768px) {
+    .tour-logs-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .tour-logs-header h2 {
+        font-size: 20px;
+    }
+
+    .tour-logs-table {
+        font-size: 12px;
+    }
+
+    .log-cell-truncate {
+        max-width: 100px;
+    }
+
+    .log-actions .btn {
+        font-size: 12px;
+        padding: 4px 10px;
+    }
+}
