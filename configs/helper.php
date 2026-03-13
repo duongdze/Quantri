@@ -72,3 +72,45 @@ if (!function_exists('check_role')) {
         return true;
     }
 }
+
+if (!function_exists('generate_csrf_token')) {
+    function generate_csrf_token() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+}
+
+if (!function_exists('verify_csrf_token')) {
+    function verify_csrf_token($token) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], (string)$token);
+    }
+}
+
+if (!function_exists('csrf_field')) {
+    function csrf_field() {
+        return '<input type="hidden" name="csrf_token" value="' . generate_csrf_token() . '">';
+    }
+}
+if (!function_exists('send_mail_log')) {
+    function send_mail_log($to, $subject, $content) {
+        $logDir = PATH_ASSETS_UPLOADS . 'emails';
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0777, true);
+        }
+        $logFile = $logDir . '/mail_log.txt';
+        $timestamp = date('Y-m-d H:i:s');
+        $logEntry = "[$timestamp] TO: $to | SUBJECT: $subject\n";
+        $logEntry .= "CONTENT:\n$content\n";
+        $logEntry .= str_repeat('-', 50) . "\n";
+        
+        return file_put_contents($logFile, $logEntry, FILE_APPEND);
+    }
+}

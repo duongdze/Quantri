@@ -15,6 +15,15 @@
     <img src="<?= $heroImage ?>" alt="<?= htmlspecialchars($tour['name']) ?>" class="w-100 h-100 object-fit-cover">
     <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.8));"></div>
     <div class="position-absolute top-50 start-50 translate-middle text-center w-75 hero-content">
+        <!-- Breadcrumbs -->
+        <nav aria-label="breadcrumb" class="d-none d-md-block">
+            <ol class="breadcrumb justify-content-center mb-4">
+                <li class="breadcrumb-item"><a href="<?= BASE_URL ?>" class="text-white opacity-75">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="<?= BASE_URL ?>?action=tour-list" class="text-white opacity-75">Tour</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page"><?= htmlspecialchars($tour['name']) ?></li>
+            </ol>
+        </nav>
+        
         <span class="badge bg-primary px-3 py-2 mb-3 rounded-pill text-uppercase letter-spacing-1"><?= htmlspecialchars($tour['category_name'] ?? 'General') ?></span>
         <h1 class="display-4 fw-bold mb-3 text-white" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.8);"><?= htmlspecialchars($tour['name']) ?></h1>
         <?php if (!empty($tour['subtitle'])): ?>
@@ -53,7 +62,21 @@
                             <i class="fas fa-plane-departure"></i>
                         </div>
                         <h6 class="text-uppercase text-muted small fw-bold">Khởi hành</h6>
-                        <p class="h5 mb-0 fw-bold">Hàng tuần</p>
+                        <?php 
+                        $departureText = 'Liên hệ';
+                        if (!empty($departures)) {
+                            // Map over to ensure dates are valid and filter for future ones
+                            $futureDate = null;
+                            foreach($departures as $d) {
+                                if (strtotime($d['departure_date']) >= strtotime(date('Y-m-d'))) {
+                                    $futureDate = date('d/m/Y', strtotime($d['departure_date']));
+                                    break;
+                                }
+                            }
+                            if ($futureDate) $departureText = $futureDate;
+                        }
+                        ?>
+                        <p class="h5 mb-0 fw-bold"><?= $departureText ?></p>
                     </div>
                 </div>
             </div>
@@ -414,7 +437,7 @@
                 }
             </script>
             <?php endif; ?>
-            
+
             <!-- Policies -->
             <?php if (!empty($policies)): ?>
             <section class="mb-5">
@@ -422,7 +445,7 @@
                 <div class="row g-4">
                     <?php foreach($policies as $policy): ?>
                         <div class="col-12">
-                            <div class="policy-card p-4 rounded h-100">
+                            <div class="policy-card p-4 rounded h-100 border shadow-sm">
                                 <h5 class="card-title text-secondary mb-3">
                                     <i class="fas fa-shield-alt me-2"></i><?= htmlspecialchars($policy['name']) ?>
                                 </h5>
@@ -435,6 +458,59 @@
                 </div>
             </section>
             <?php endif; ?>
+
+            <!-- Reviews Section -->
+            <section class="mb-5" id="reviews">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <h3 class="text-primary fw-bold mb-0">Đánh giá từ khách hàng</h3>
+                    <div class="d-flex align-items-center">
+                        <div class="text-warning me-2">
+                            <?php for($i=1; $i<=5; $i++): ?>
+                                <i class="<?= $i <= round($tour['avg_rating']) ? 'fas' : 'far' ?> fa-star"></i>
+                            <?php endfor; ?>
+                        </div>
+                        <span class="fw-bold"><?= number_format($tour['avg_rating'], 1) ?>/5</span>
+                        <span class="text-muted ms-2">(<?= $tour['review_count'] ?> đánh giá)</span>
+                    </div>
+                </div>
+
+                <?php if (!empty($reviews)): ?>
+                    <div class="reviews-list">
+                        <?php foreach($reviews as $rev): ?>
+                            <div class="review-item bg-white p-4 rounded shadow-sm mb-3">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="review-avatar me-3">
+                                            <?php if (!empty($rev['user_avatar'])): ?>
+                                                <img src="<?= BASE_ASSETS_UPLOADS . $rev['user_avatar'] ?>" alt="User" class="rounded-circle" width="48" height="48">
+                                            <?php else: ?>
+                                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px">
+                                                    <?= strtoupper(substr($rev['user_name'], 0, 1)) ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div>
+                                            <h6 class="fw-bold mb-0"><?= htmlspecialchars($rev['user_name']) ?></h6>
+                                            <div class="text-warning small">
+                                                <?php for($i=1; $i<=5; $i++): ?>
+                                                    <i class="<?= $i <= $rev['rating'] ? 'fas' : 'far' ?> fa-star"></i>
+                                                <?php endfor; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted"><?= date('d/m/Y', strtotime($rev['created_at'])) ?></small>
+                                </div>
+                                <p class="text-muted mb-0"><?= nl2br(htmlspecialchars($rev['comment'])) ?></p>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="bg-white p-5 rounded shadow-sm text-center text-muted">
+                        <i class="far fa-comment-dots fa-3x mb-3 opacity-25"></i>
+                        <p class="mb-0">Chưa có đánh giá nào cho tour này. Hãy là người đầu tiên trải nghiệm và chia sẻ!</p>
+                    </div>
+                <?php endif; ?>
+            </section>
         </div>
 
         <!-- Right Stick Sidebar -->

@@ -84,6 +84,16 @@
 </style>
 
 <div class="container my-5">
+    <!-- Breadcrumbs -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-4">
+            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>?action=tour-list">Tour</a></li>
+            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>?action=tour-detail&id=<?= $tour['id'] ?>"><?= htmlspecialchars($tour['name']) ?></a></li>
+            <li class="breadcrumb-item active" aria-current="page">Đặt tour</li>
+        </ol>
+    </nav>
+
     <!-- Stepper -->
     <div class="row mb-5">
         <div class="col-lg-8 mx-auto">
@@ -124,7 +134,8 @@
                         </div>
                     <?php endif; ?>
 
-                    <form action="<?= BASE_URL ?>?action=booking-store" method="POST" id="bookingForm">
+                    <form action="<?= BASE_URL ?>?action=booking-process" method="POST" id="bookingForm">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="tour_id" value="<?= $tour['id'] ?>">
                         <input type="hidden" name="departure_id" value="<?= $departure['id'] ?>">
 
@@ -232,7 +243,12 @@
                 <div class="card-body p-4 pt-4">
                     <!-- Tour Info Mini -->
                     <div class="d-flex mb-4">
-                        <img src="<?= BASE_ASSETS_UPLOADS . $this->tourModel->getRelatedData('tour_gallery_images', $tour['id'])[0]['image_url'] ?? 'https://via.placeholder.com/100' ?>" 
+                        <?php
+                        $thumbSrc = !empty($tour['main_image'])
+                            ? BASE_ASSETS_UPLOADS . htmlspecialchars($tour['main_image'])
+                            : 'https://via.placeholder.com/100x100?text=Tour';
+                        ?>
+                        <img src="<?= $thumbSrc ?>" 
                              class="rounded-3 object-fit-cover shadow-sm" style="width: 80px; height: 80px;" alt="Tour Thumb">
                         <div class="ms-3">
                             <h6 class="fw-bold line-clamp-2 mb-1"><?= htmlspecialchars($tour['name']) ?></h6>

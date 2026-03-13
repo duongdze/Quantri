@@ -13,7 +13,6 @@ class Tour extends BaseModel
         'base_price',
         'status',
         'featured',
-        'duration_days',
         'max_participants',
         'min_participants',
         'difficulty_level',
@@ -503,6 +502,39 @@ class Tour extends BaseModel
     }
 
     /**
+     * Get featured tours for homepage
+     */
+    public function getFeaturedTours($limit = 6)
+    {
+        $sql = "SELECT t.*, tc.name as category_name,
+                COALESCE(tf.avg_rating, 0) as avg_rating,
+                COALESCE(tb.booking_count, 0) as booking_count,
+                MAX(CASE WHEN tgi.main_img = 1 THEN tgi.image_url END) AS main_image
+                FROM {$this->table} t
+                LEFT JOIN tour_categories tc ON t.category_id = tc.id
+                LEFT JOIN (
+                    SELECT tour_id, AVG(rating) as avg_rating
+                    FROM tour_feedbacks
+                    GROUP BY tour_id
+                ) tf ON t.id = tf.tour_id
+                LEFT JOIN (
+                    SELECT tour_id, COUNT(*) as booking_count
+                    FROM bookings
+                    GROUP BY tour_id
+                ) tb ON t.id = tb.tour_id
+                LEFT JOIN tour_gallery_images tgi ON t.id = tgi.tour_id
+                WHERE t.featured = 1 AND t.status = 'active'
+                GROUP BY t.id, tc.name, tf.avg_rating, tb.booking_count
+                ORDER BY t.created_at DESC
+                LIMIT :limit";
+
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Get active tours with optimized query
      */
     public function getActiveTours($limit = 10)
@@ -760,6 +792,21 @@ class Tour extends BaseModel
         }
         $stmt->execute();
 
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get all reviews for a specific tour
+     */
+    public function getReviewsByTourId($tourId)
+    {
+        $sql = "SELECT tf.*, u.full_name as user_name, u.avatar as user_avatar 
+                FROM tour_feedbacks tf
+                JOIN users u ON tf.user_id = u.user_id
+                WHERE tf.tour_id = :tour_id
+                ORDER BY tf.created_at DESC";
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute(['tour_id' => $tourId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

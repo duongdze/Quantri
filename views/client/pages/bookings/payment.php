@@ -82,6 +82,16 @@
 </style>
 
 <div class="container my-5">
+    <!-- Breadcrumbs -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-4">
+            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>?action=tour-list">Tour</a></li>
+            <li class="breadcrumb-item"><a href="<?= BASE_URL ?>?action=tour-detail&id=<?= $tour['id'] ?>"><?= htmlspecialchars($tour['name']) ?></a></li>
+            <li class="breadcrumb-item active" aria-current="page">Thanh toán</li>
+        </ol>
+    </nav>
+
     <!-- Stepper -->
     <div class="row mb-5">
         <div class="col-lg-8 mx-auto">

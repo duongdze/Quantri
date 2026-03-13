@@ -35,6 +35,12 @@ class AuthController
             exit;
         }
 
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            $_SESSION['error'] = 'Lỗi bảo mật: CSRF token không hợp lệ!';
+            header('Location: ' . BASE_URL . '?action=login');
+            exit;
+        }
+
         $email    = trim($_POST['email']    ?? '');
         $password = trim($_POST['password'] ?? '');
 
@@ -52,6 +58,14 @@ class AuthController
             exit;
         }
 
+        // Kiểm tra tài khoản bị khóa
+        if (!empty($user['lock_until']) && strtotime($user['lock_until']) > time()) {
+            $timeLeft = ceil((strtotime($user['lock_until']) - time()) / 60);
+            $_SESSION['error'] = "Tài khoản đang bị tạm khóa do nhập sai mật khẩu nhiều lần. Vui lòng thử lại sau $timeLeft phút.";
+            header('Location: ' . BASE_URL . '?action=login');
+            exit;
+        }
+
         // Kiểm tra mật khẩu (hỗ trợ cả hash và plain text cũ)
         $passwordOk = false;
         if (!empty($user['password_hash'])) {
@@ -62,9 +76,28 @@ class AuthController
         }
 
         if (!$passwordOk) {
-            $_SESSION['error'] = 'Mật khẩu không đúng.';
+            $attempts = ($user['login_attempts'] ?? 0) + 1;
+            $updateData = ['login_attempts' => $attempts];
+            
+            if ($attempts >= 5) {
+                $updateData['lock_until'] = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+                $_SESSION['error'] = 'Bạn đã nhập sai 5 lần. Tài khoản bị khóa trong 15 phút.';
+            } else {
+                $_SESSION['error'] = 'Mật khẩu không đúng. Bạn còn ' . (5 - $attempts) . ' lần thử.';
+            }
+
+            $this->userModel->update($updateData, 'user_id = :uid', ['uid' => $user['user_id']]);
             header('Location: ' . BASE_URL . '?action=login');
             exit;
+        }
+
+        // Đăng nhập thành công -> Reset số lần sai
+        if (($user['login_attempts'] ?? 0) > 0 || !empty($user['lock_until'])) {
+            $this->userModel->update(
+                ['login_attempts' => 0, 'lock_until' => null],
+                'user_id = :uid',
+                ['uid' => $user['user_id']]
+            );
         }
 
         // Lưu session
@@ -72,6 +105,9 @@ class AuthController
             'user_id'   => $user['user_id'],
             'full_name' => $user['full_name'],
             'email'     => $user['email'],
+            'phone'     => $user['phone'] ?? '',
+            'address'   => $user['address'] ?? '',
+            'avatar'    => $user['avatar'] ?? '',
             'role'      => $user['role'],
         ];
 
@@ -107,6 +143,12 @@ class AuthController
     public function register()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=register');
+            exit;
+        }
+
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            $_SESSION['error'] = 'Lỗi bảo mật: CSRF token không hợp lệ!';
             header('Location: ' . BASE_URL . '?action=register');
             exit;
         }
@@ -161,6 +203,277 @@ class AuthController
         unset($_SESSION['user']);
         session_destroy();
         header('Location: ' . BASE_URL);
+        exit;
+    }
+
+    /**
+     * Trang tài khoản của tôi
+     */
+    public function myAccount()
+    {
+        if (empty($_SESSION['user'])) {
+            header('Location: ' . BASE_URL . '?action=login');
+            exit;
+        }
+        $error   = $_SESSION['error']   ?? null;
+        $success = $_SESSION['success'] ?? null;
+        unset($_SESSION['error'], $_SESSION['success']);
+
+        // Lấy thông tin đầy đủ từ DB
+        $user = $this->userModel->getById($_SESSION['user']['user_id']);
+
+        require_once PATH_VIEW_CLIENT . 'pages/account/index.php';
+    }
+
+    /**
+     * Cập nhật thông tin tài khoản
+     */
+    public function updateAccount()
+    {
+        if (empty($_SESSION['user'])) {
+            header('Location: ' . BASE_URL . '?action=login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=my-account');
+            exit;
+        }
+
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            $_SESSION['error'] = 'Lỗi bảo mật: CSRF token không hợp lệ!';
+            header('Location: ' . BASE_URL . '?action=my-account');
+            exit;
+        }
+
+        $userId   = $_SESSION['user']['user_id'];
+        $fullName = trim($_POST['full_name'] ?? '');
+        $phone    = trim($_POST['phone']     ?? '');
+        $address  = trim($_POST['address']   ?? '');
+
+        if (empty($fullName)) {
+            $_SESSION['error'] = 'Họ tên không được để trống.';
+            header('Location: ' . BASE_URL . '?action=my-account');
+            exit;
+        }
+
+        $this->userModel->update(
+            ['full_name' => $fullName, 'phone' => $phone, 'address' => $address],
+            'user_id = :uid',
+            ['uid' => $userId]
+        );
+
+        // Cập nhật session
+        $_SESSION['user']['full_name'] = $fullName;
+        $_SESSION['user']['phone']     = $phone;
+        $_SESSION['user']['address']   = $address;
+
+        $_SESSION['success'] = 'Cập nhật thông tin thành công!';
+        header('Location: ' . BASE_URL . '?action=my-account');
+        exit;
+    }
+
+    /**
+     * Đổi mật khẩu (client)
+     */
+    public function changePassword()
+    {
+        if (empty($_SESSION['user'])) {
+            header('Location: ' . BASE_URL . '?action=login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=my-account');
+            exit;
+        }
+
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            $_SESSION['error'] = 'Lỗi bảo mật: CSRF token không hợp lệ!';
+            header('Location: ' . BASE_URL . '?action=my-account#password');
+            exit;
+        }
+
+        $userId  = $_SESSION['user']['user_id'];
+        $current = trim($_POST['current_password'] ?? '');
+        $new     = trim($_POST['new_password']     ?? '');
+        $confirm = trim($_POST['confirm_password'] ?? '');
+
+        $user = $this->userModel->getById($userId);
+
+        // Kiểm tra mật khẩu hiện tại
+        $ok = false;
+        if (!empty($user['password_hash'])) {
+            $ok = password_verify($current, $user['password_hash']);
+        }
+        if (!$ok && isset($user['password'])) {
+            $ok = ($current === $user['password']);
+        }
+
+        if (!$ok) {
+            $_SESSION['error'] = 'Mật khẩu hiện tại không đúng.';
+            header('Location: ' . BASE_URL . '?action=my-account#password');
+            exit;
+        }
+        if (strlen($new) < 6) {
+            $_SESSION['error'] = 'Mật khẩu mới phải ít nhất 6 ký tự.';
+            header('Location: ' . BASE_URL . '?action=my-account#password');
+            exit;
+        }
+        if ($new !== $confirm) {
+            $_SESSION['error'] = 'Xác nhận mật khẩu không khớp.';
+            header('Location: ' . BASE_URL . '?action=my-account#password');
+            exit;
+        }
+
+        $this->userModel->update(
+            ['password_hash' => password_hash($new, PASSWORD_DEFAULT)],
+            'user_id = :uid',
+            ['uid' => $userId]
+        );
+
+        $_SESSION['success'] = 'Đổi mật khẩu thành công!';
+        header('Location: ' . BASE_URL . '?action=my-account');
+        exit;
+    }
+
+    /**
+     * Quên mật khẩu – hiển thị form
+     */
+    public function showForgotPassword()
+    {
+        if (!empty($_SESSION['user'])) {
+            header('Location: ' . BASE_URL);
+            exit;
+        }
+        $error   = $_SESSION['error']   ?? null;
+        $success = $_SESSION['success'] ?? null;
+        unset($_SESSION['error'], $_SESSION['success']);
+        require_once PATH_VIEW_CLIENT . 'auth/forgot-password.php';
+    }
+
+    /**
+     * Quên mật khẩu – xử lý POST
+     */
+    public function forgotPassword()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=forgot-password');
+            exit;
+        }
+
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            $_SESSION['error'] = 'Lỗi bảo mật: CSRF token không hợp lệ!';
+            header('Location: ' . BASE_URL . '?action=forgot-password');
+            exit;
+        }
+
+        $email = trim($_POST['email'] ?? '');
+        if (empty($email)) {
+            $_SESSION['error'] = 'Vui lòng nhập email.';
+            header('Location: ' . BASE_URL . '?action=forgot-password');
+            exit;
+        }
+
+        $user = $this->userModel->getByEmail($email);
+        if (!$user) {
+            $_SESSION['success'] = 'Nếu email tồn tại, link đặt lại mật khẩu sẽ được gửi. Vui lòng kiểm tra hộp thư.';
+            header('Location: ' . BASE_URL . '?action=forgot-password');
+            exit;
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $expires = time() + 3600; // 1 giờ
+
+        $_SESSION['reset_tokens'][$token] = [
+            'user_id' => $user['user_id'],
+            'expires' => $expires,
+        ];
+
+        $resetLink = BASE_URL . '?action=reset-password&token=' . $token;
+        $_SESSION['success'] = 'Link đặt lại mật khẩu của bạn: <a href="' . $resetLink . '">' . $resetLink . '</a>';
+        header('Location: ' . BASE_URL . '?action=forgot-password');
+        exit;
+    }
+
+    /**
+     * Đặt lại mật khẩu – hiển thị form
+     */
+    public function showResetPassword()
+    {
+        $token = $_GET['token'] ?? '';
+        $valid = false;
+        $error = null;
+
+        if (!empty($token) && isset($_SESSION['reset_tokens'][$token])) {
+            $data = $_SESSION['reset_tokens'][$token];
+            if ($data['expires'] > time()) {
+                $valid = true;
+            } else {
+                $error = 'Link đặt lại mật khẩu đã hết hạn.';
+                unset($_SESSION['reset_tokens'][$token]);
+            }
+        } else {
+            $error = 'Link không hợp lệ hoặc đã được sử dụng.';
+        }
+
+        require_once PATH_VIEW_CLIENT . 'auth/reset-password.php';
+    }
+
+    /**
+     * Đặt lại mật khẩu – xử lý POST
+     */
+    public function resetPassword()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=forgot-password');
+            exit;
+        }
+
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            $_SESSION['error'] = 'Lỗi bảo mật: CSRF token không hợp lệ!';
+            header('Location: ' . BASE_URL . '?action=reset-password');
+            exit;
+        }
+
+        $token   = $_POST['token']            ?? '';
+        $new     = trim($_POST['new_password']     ?? '');
+        $confirm = trim($_POST['confirm_password'] ?? '');
+
+        if (empty($token) || !isset($_SESSION['reset_tokens'][$token])) {
+            $_SESSION['error'] = 'Link không hợp lệ.';
+            header('Location: ' . BASE_URL . '?action=forgot-password');
+            exit;
+        }
+
+        $data = $_SESSION['reset_tokens'][$token];
+        if ($data['expires'] <= time()) {
+            unset($_SESSION['reset_tokens'][$token]);
+            $_SESSION['error'] = 'Link đã hết hạn. Vui lòng yêu cầu lại.';
+            header('Location: ' . BASE_URL . '?action=forgot-password');
+            exit;
+        }
+
+        if (strlen($new) < 6) {
+            $_SESSION['error'] = 'Mật khẩu phải ít nhất 6 ký tự.';
+            header('Location: ' . BASE_URL . '?action=reset-password&token=' . $token);
+            exit;
+        }
+        if ($new !== $confirm) {
+            $_SESSION['error'] = 'Xác nhận mật khẩu không khớp.';
+            header('Location: ' . BASE_URL . '?action=reset-password&token=' . $token);
+            exit;
+        }
+
+        $this->userModel->update(
+            ['password_hash' => password_hash($new, PASSWORD_DEFAULT)],
+            'user_id = :uid',
+            ['uid' => $data['user_id']]
+        );
+
+        unset($_SESSION['reset_tokens'][$token]);
+        $_SESSION['success'] = 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập.';
+        header('Location: ' . BASE_URL . '?action=login');
         exit;
     }
 }

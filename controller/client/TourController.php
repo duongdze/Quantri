@@ -54,10 +54,17 @@ class ClientTourController
         // Fetch tour details using the same logic as Admin but for display
         $pdo = BaseModel::getPdo();
         $stmt = $pdo->prepare("
-            SELECT t.*, tc.name as category_name, s.name as supplier_name
+            SELECT t.*, tc.name as category_name, s.name as supplier_name,
+                   COALESCE(tf.avg_rating, 0) as avg_rating,
+                   COALESCE(tf.review_count, 0) as review_count
             FROM tours t 
             LEFT JOIN tour_categories tc ON t.category_id = tc.id 
             LEFT JOIN suppliers s ON t.supplier_id = s.id
+            LEFT JOIN (
+                SELECT tour_id, AVG(rating) as avg_rating, COUNT(*) as review_count
+                FROM tour_feedbacks
+                GROUP BY tour_id
+            ) tf ON t.id = tf.tour_id
             WHERE t.id = :id
         ");
         $stmt->execute(['id' => $id]);
@@ -94,6 +101,18 @@ class ClientTourController
         // Departures
         $departureModel = new TourDeparture();
         $departures = $departureModel->select('*', 'tour_id = :tid', ['tid' => $id], 'departure_date ASC');
+
+        if (empty($tour['duration_days'])) {
+            $tour['duration_days'] = count($itinerarySchedule) ?: 'N/A';
+        }
+
+        // Reviews
+        $reviews = $this->model->getReviewsByTourId($id);
+
+        // SEO
+        $pageTitle = $tour['name'] . ' – VietTour';
+        $metaDescription = mb_substr(strip_tags($tour['description']), 0, 160) . '...';
+        $ogImage = !empty($images) ? (BASE_ASSETS_UPLOADS . $images[0]['image_url']) : null;
 
         // Check for success message from booking
         $success = $_SESSION['success'] ?? null;

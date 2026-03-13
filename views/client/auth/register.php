@@ -22,6 +22,7 @@ require_once PATH_VIEW_CLIENT . 'default/header.php';
 
         <!-- Form -->
         <form action="<?= BASE_URL ?>?action=register-post" method="POST">
+            <?= csrf_field() ?>
             <div class="form-group">
                 <label><i class="fas fa-user"></i> Họ và tên</label>
                 <input type="text" name="full_name" class="form-control-vt"

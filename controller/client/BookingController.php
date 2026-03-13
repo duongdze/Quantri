@@ -50,6 +50,12 @@ class ClientBookingController
             exit;
         }
 
+        if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+            $_SESSION['error'] = 'Lỗi bảo mật: CSRF token không hợp lệ!';
+            header('Location: ' . BASE_URL);
+            exit;
+        }
+
         $tourId = $_POST['tour_id'];
         $departureId = $_POST['departure_id'];
         
@@ -119,6 +125,16 @@ class ClientBookingController
 
             $this->bookingModel->commit();
 
+            // Gửi email giả lập (ghi log)
+            $emailContent = "Chào " . $_POST['full_name'] . ",\n\n";
+            $emailContent .= "Cảm ơn bạn đã đặt tour tại VietTour. Mã đơn hàng của bạn là: $bookingCode\n";
+            $emailContent .= "Tour: " . $tour['name'] . "\n";
+            $emailContent .= "Ngày khởi hành: " . $departure['departure_date'] . "\n";
+            $emailContent .= "Tổng tiền: " . number_format($totalPrice) . " VND\n\n";
+            $emailContent .= "Vui lòng hoàn tất thanh toán để xác nhận đơn hàng.\n";
+            
+            send_mail_log($_POST['email'], "Xác nhận đặt tour $bookingCode", $emailContent);
+
             header('Location: ' . BASE_URL . '?action=booking-payment&code=' . $bookingCode);
 
         } catch (Exception $e) {
@@ -150,6 +166,77 @@ class ClientBookingController
     public function success()
     {
         $code = $_GET['code'] ?? '';
+        if ($code) {
+            $bookingId = intval(substr($code, 2));
+            $booking = $this->bookingModel->getBookingWithDetails($bookingId);
+        }
         require_once PATH_VIEW_CLIENT . 'pages/bookings/success.php';
+    }
+
+    /**
+     * Đơn hàng của tôi
+     */
+    public function myBookings()
+    {
+        if (empty($_SESSION['user'])) {
+            header('Location: ' . BASE_URL . '?action=login');
+            exit;
+        }
+
+        $customerId = $_SESSION['user']['user_id'];
+        $pdo = BaseModel::getPdo();
+        $stmt = $pdo->prepare("
+            SELECT b.*,
+                   t.name AS tour_name,
+                   MAX(CASE WHEN tgi.main_img = 1 THEN tgi.image_url END) AS tour_image,
+                   td.departure_date
+            FROM bookings b
+            LEFT JOIN tours t ON b.tour_id = t.id
+            LEFT JOIN tour_gallery_images tgi ON t.id = tgi.tour_id
+            LEFT JOIN tour_departures td ON b.departure_id = td.id
+            WHERE b.customer_id = :cid
+            GROUP BY b.id, t.name, td.departure_date
+            ORDER BY b.created_at DESC
+        ");
+        $stmt->execute([':cid' => $customerId]);
+        $bookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $pageTitle = 'Đơn hàng của tôi – VietTour';
+        require_once PATH_VIEW_CLIENT . 'pages/bookings/my-bookings.php';
+    }
+
+    /**
+     * Chi tiết đơn hàng của tôi
+     */
+    public function myBookingDetail()
+    {
+        if (empty($_SESSION['user'])) {
+            header('Location: ' . BASE_URL . '?action=login');
+            exit;
+        }
+
+        $code = $_GET['code'] ?? '';
+        if (!$code) {
+            header('Location: ' . BASE_URL . '?action=my-bookings');
+            exit;
+        }
+
+        $bookingId = intval(substr($code, 2));
+        $booking = $this->bookingModel->getBookingWithDetails($bookingId);
+
+        // Chỉ cho phép xem booking của chính mình
+        if (!$booking || $booking['customer_id'] != $_SESSION['user']['user_id']) {
+            header('Location: ' . BASE_URL . '?action=my-bookings');
+            exit;
+        }
+
+        // Lấy danh sách khách
+        $pdo = BaseModel::getPdo();
+        $stmt = $pdo->prepare("SELECT * FROM booking_customers WHERE booking_id = :bid");
+        $stmt->execute([':bid' => $bookingId]);
+        $passengers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $pageTitle = 'Chi tiết đơn hàng – VietTour';
+        require_once PATH_VIEW_CLIENT . 'pages/bookings/detail.php';
     }
 }

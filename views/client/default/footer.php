@@ -36,10 +36,10 @@
             <div class="col-lg-3 col-6">
                 <h5>Hỗ trợ</h5>
                 <ul class="vt-footer-links">
-                    <li><a href="#"><i class="fas fa-angle-right"></i> Hướng dẫn đặt tour</a></li>
-                    <li><a href="#"><i class="fas fa-angle-right"></i> Chính sách hoàn tiền</a></li>
-                    <li><a href="#"><i class="fas fa-angle-right"></i> Điều khoản sử dụng</a></li>
-                    <li><a href="#"><i class="fas fa-angle-right"></i> Câu hỏi thường gặp</a></li>
+                    <li><a href="<?= BASE_URL ?>?action=guide-booking"><i class="fas fa-angle-right"></i> Hướng dẫn đặt tour</a></li>
+                    <li><a href="<?= BASE_URL ?>?action=refund-policy"><i class="fas fa-angle-right"></i> Chính sách hoàn tiền</a></li>
+                    <li><a href="<?= BASE_URL ?>?action=about"><i class="fas fa-angle-right"></i> Về chúng tôi</a></li>
+                    <li><a href="<?= BASE_URL ?>?action=faq"><i class="fas fa-angle-right"></i> Câu hỏi thường gặp</a></li>
                 </ul>
             </div>
 

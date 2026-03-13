@@ -29,6 +29,7 @@ require_once PATH_VIEW_CLIENT . 'default/header.php';
 
         <!-- Form -->
         <form action="<?= BASE_URL ?>?action=login-post" method="POST">
+            <?= csrf_field() ?>
             <div class="form-group">
                 <label><i class="fas fa-envelope"></i> Email</label>
                 <input type="email" name="email" class="form-control-vt"
