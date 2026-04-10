@@ -19,6 +19,8 @@ require_once 'controller/admin/TourAssignmentController.php';
 require_once 'controller/admin/GuideWorkController.php';
 require_once 'controller/admin/TourVehicleController.php';
 require_once 'controller/admin/AvailableToursController.php'; // Add missing controller
+require_once 'controller/admin/PostController.php';
+require_once 'controller/admin/ReviewController.php';
 
 require_once 'controller/admin/UserController.php';
 
@@ -51,6 +53,9 @@ match ($action) {
     'tours/bulk-delete'                     => (new TourController)->bulkDelete(),
     'tours/search'                          => (new TourController)->search(),
     'tours/by-status'                       => (new TourController)->getByStatus(),
+    'tours/trash'                           => (new TourController)->trash(),
+    'tours/restore'                         => (new TourController)->restore(),
+    'tours/force-delete'                    => (new TourController)->forceDelete(),
 
     // Tour Category
     'tours_categories'                      => (new TourCategoryController)->index(),
@@ -194,4 +199,17 @@ match ($action) {
     'tour_vehicles/update'      => (new TourVehicleController)->update(),
     'tour_vehicles/delete'      => (new TourVehicleController)->delete(),
     'tour_vehicles/get-history' => (new TourVehicleController)->getHistoryByCompany(), // AJAX route
+
+    // Blog / Posts
+    'posts'               => (new PostController)->index(),
+    'posts/create'        => (new PostController)->create(),
+    'posts/store'         => (new PostController)->store(),
+    'posts/edit'          => (new PostController)->edit(),
+    'posts/update'        => (new PostController)->update(),
+    'posts/delete'        => (new PostController)->delete(),
+
+    // Reviews
+    'reviews'             => (new ReviewController)->index(),
+    'reviews/update-status' => (new ReviewController)->updateStatus(),
+    'reviews/delete'      => (new ReviewController)->delete(),
 };

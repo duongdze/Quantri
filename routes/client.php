@@ -162,8 +162,26 @@ switch ($action) {
         (new StaticController())->refundPolicy();
         break;
 
+    // ─── Blog / Tin tức ───
+    case 'blog':
+        require_once 'controller/client/PostController.php';
+        (new ClientPostController())->index();
+        break;
+
+    case 'blog/detail':
+        require_once 'controller/client/PostController.php';
+        (new ClientPostController())->detail();
+        break;
+
+    // ─── Đánh giá tour ───
+    case 'review-store':
+        require_once 'controller/client/ReviewController.php';
+        (new ClientReviewController())->store();
+        break;
+
     // ─── 404 ───
     default:
+
         http_response_code(404);
         $pageTitle = '404 – Không tìm thấy trang';
         require_once 'configs/env.php';

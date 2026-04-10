@@ -391,10 +391,22 @@ class AuthController
         ];
 
         $resetLink = BASE_URL . '?action=reset-password&token=' . $token;
-        $_SESSION['success'] = 'Link đặt lại mật khẩu của bạn: <a href="' . $resetLink . '">' . $resetLink . '</a>';
+
+        // Gửi email thật qua PHPMailer
+        require_once PATH_ROOT . 'services/MailService.php';
+        $sent = MailService::sendPasswordReset($user, $resetLink);
+
+        if ($sent) {
+            $_SESSION['success'] = 'Link đặt lại mật khẩu đã được gửi đến <strong>' . htmlspecialchars($user['email']) . '</strong>. Vui lòng kiểm tra hộp thư (kể cả thư mục Spam).';
+        } else {
+            // Fallback khi MAIL_ENABLED=false hoặc gửi lỗi: hiển thị link trực tiếp (chỉ dùng khi dev)
+            $_SESSION['success'] = 'Link đặt lại mật khẩu của bạn: <a href="' . $resetLink . '">' . $resetLink . '</a>';
+        }
+
         header('Location: ' . BASE_URL . '?action=forgot-password');
         exit;
     }
+
 
     /**
      * Đặt lại mật khẩu – hiển thị form

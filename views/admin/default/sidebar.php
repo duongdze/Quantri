@@ -90,6 +90,21 @@ $isGuide = $userRole === 'guide';
                                 <i class="fas fa-handshake fa-fw me-2"></i> Nhà cung cấp
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= isActive('tours/trash') ?>" href="<?= BASE_URL_ADMIN ?>&action=tours/trash">
+                                <i class="fas fa-trash-alt fa-fw me-2 text-danger"></i> Thùng Rác Tour
+                                <?php
+                                $trashBadge = 0;
+                                try {
+                                    $trashModel = new Tour();
+                                    $trashBadge = $trashModel->countTrashed();
+                                } catch (Exception $e) {}
+                                ?>
+                                <?php if ($trashBadge > 0): ?>
+                                    <span class="badge bg-danger ms-1" style="font-size:.65rem"><?= $trashBadge ?></span>
+                                <?php endif; ?>
+                            </a>
+                        </li>
                         <!-- <li class="nav-item">
                             <a class="nav-link <?= isActive('tours_history') ?>" href="<?= BASE_URL_ADMIN ?>&action=tours_history">
                                 <i class="fas fa-history fa-fw me-2"></i> Lịch sử Tour
@@ -220,6 +235,34 @@ $isGuide = $userRole === 'guide';
                         <li class="nav-item">
                             <a class="nav-link <?= isActive('reports/feedback') ?>" href="<?= BASE_URL_ADMIN ?>&action=reports/feedback">
                                 <i class="fas fa-comments fa-fw me-2"></i> Báo cáo phản hồi
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+        <?php endif; ?>
+
+        <?php if ($isAdmin): ?>
+            <!-- Blog / Bài Viết -->
+            <li class="nav-item">
+                <a class="nav-link dropdown-toggles d-flex justify-content-between align-items-center <?= isParentActive(['posts', 'reviews']) ? 'active' : '' ?>"
+                    href="#" role="button"
+                    aria-expanded="<?= isParentActive(['posts', 'reviews']) ? 'true' : 'false' ?>"
+                    data-menu-key="content"
+                    data-collapse-id="contentMenu">
+                    <span><i class="fas fa-newspaper fa-fw me-2"></i>Nội Dung & Blog</span>
+                    <i class="fas fa-chevron-down fa-xs"></i>
+                </a>
+                <div class="collapse <?= isParentActive(['posts', 'reviews']) ?>" id="contentMenu">
+                    <ul class="nav flex-column ms-3">
+                        <li class="nav-item">
+                            <a class="nav-link <?= isActive('posts') ?>" href="<?= BASE_URL_ADMIN ?>&action=posts">
+                                <i class="fas fa-file-alt fa-fw me-2"></i> Bài Viết / Blog
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= isActive('reviews') ?>" href="<?= BASE_URL_ADMIN ?>&action=reviews">
+                                <i class="fas fa-star fa-fw me-2"></i> Đánh Giá Tour
                             </a>
                         </li>
                     </ul>

@@ -1,5 +1,6 @@
 <?php
 require_once 'models/TourCategory.php';
+require_once 'models/Review.php';
 
 class ClientTourController
 {
@@ -65,7 +66,7 @@ class ClientTourController
                 FROM tour_feedbacks
                 GROUP BY tour_id
             ) tf ON t.id = tf.tour_id
-            WHERE t.id = :id
+            WHERE t.id = :id AND t.deleted_at IS NULL
         ");
         $stmt->execute(['id' => $id]);
         $tour = $stmt->fetch();
@@ -106,8 +107,19 @@ class ClientTourController
             $tour['duration_days'] = count($itinerarySchedule) ?: 'N/A';
         }
 
-        // Reviews
-        $reviews = $this->model->getReviewsByTourId($id);
+        // Reviews từ bảng tour_reviews (chỉ approved)
+        $reviewModel  = new Review();
+        $reviews      = $reviewModel->getApprovedByTour($id);
+        $ratingSummary = $reviewModel->getRatingSummary($id);
+
+        // Kiểm tra user hiện tại có thể review không
+        $canReview        = false;
+        $alreadyReviewed  = false;
+        if (!empty($_SESSION['user'])) {
+            $uid = (int)$_SESSION['user']['user_id'];
+            $alreadyReviewed = $reviewModel->hasReviewed($id, $uid);
+            $canReview       = !$alreadyReviewed && $reviewModel->hasBookedTour($id, $uid);
+        }
 
         // SEO
         $pageTitle = $tour['name'] . ' – VietTour';

@@ -52,10 +52,14 @@
             <li><a href="<?= BASE_URL ?>?action=about" class="<?= $curAction === 'about' ? 'active' : '' ?>">
                 <i class="fas fa-info-circle"></i> Về chúng tôi
             </a></li>
+            <li><a href="<?= BASE_URL ?>?action=blog" class="<?= str_starts_with($curAction, 'blog') ? 'active' : '' ?>">
+                <i class="fas fa-newspaper"></i> Blog
+            </a></li>
             <li><a href="<?= BASE_URL ?>?action=contact" class="<?= $curAction === 'contact' ? 'active' : '' ?>">
                 <i class="fas fa-envelope"></i> Liên hệ
             </a></li>
         </ul>
+
 
         <!-- Auth -->
         <div class="vt-nav-auth">

@@ -31,3 +31,14 @@ define('DB_OPTIONS', [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
 ]);
+
+// ====== Mail / SMTP Config ======
+// Thay bằng thông tin SMTP thật (Gmail, SendGrid, v.v.)
+define('MAIL_HOST',       'smtp.gmail.com');     // SMTP host
+define('MAIL_PORT',       587);                  // TLS port
+define('MAIL_USERNAME',   'your_email@gmail.com'); // Gmail / SMTP user
+define('MAIL_PASSWORD',   'your_app_password');  // App password (Gmail 2FA) 
+define('MAIL_FROM',       'your_email@gmail.com');
+define('MAIL_FROM_NAME',  'VietTour');
+define('MAIL_ENABLED',    false); // Đặt true khi đã cấu hình SMTP thật
+

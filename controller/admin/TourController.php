@@ -632,19 +632,10 @@ class TourController
         }
 
         try {
-            // Check for existing bookings
-            $bookingModel = new Booking();
-            $bookingCount = $bookingModel->count('tour_id = :id', ['id' => $id]);
-
-            if ($bookingCount > 0) {
-                $_SESSION['error'] = 'Không thể xóa tour này vì đã có ' . $bookingCount . ' booking liên quan.';
-                header('Location:' . BASE_URL_ADMIN . '&action=tours');
-                return;
-            }
-
-            $result = $this->model->removeTour($id);
-            if ($result) {
-                $_SESSION['success'] = 'Xóa tour thành công!';
+            // Soft delete thay vì hard delete
+            $result = $this->model->softDelete($id);
+            if ($result !== false) {
+                $_SESSION['success'] = 'Đã chuyển tour vào thùng rác. Bạn có thể khôi phục trong mục Thùng Rác.';
             } else {
                 throw new Exception('Không thể xóa tour');
             }
@@ -654,6 +645,66 @@ class TourController
 
         header('Location:' . BASE_URL_ADMIN . '&action=tours');
     }
+
+    /**
+     * Thùng rác – danh sách tour đã xóa mềm
+     */
+    public function trash()
+    {
+        $page    = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 12;
+        $filters = [];
+        if (!empty($_GET['keyword'])) $filters['keyword'] = trim($_GET['keyword']);
+
+        $result     = $this->model->getTrashed($page, $perPage, $filters);
+        $tours      = $result['data'];
+        $pagination = $result;
+        $trashCount = $this->model->countTrashed();
+
+        require_once PATH_VIEW_ADMIN . 'pages/tours/trash.php';
+    }
+
+    /**
+     * Khôi phục tour từ thùng rác
+     */
+    public function restore()
+    {
+        $id = $_GET['id'] ?? null;
+        if (!$id) {
+            header('Location: ' . BASE_URL_ADMIN . '&action=tours/trash');
+            return;
+        }
+        $this->model->restore($id);
+        $_SESSION['success'] = 'Đã khôi phục tour thành công!';
+        header('Location: ' . BASE_URL_ADMIN . '&action=tours/trash');
+    }
+
+    /**
+     * Xóa vĩnh viễn tour
+     */
+    public function forceDelete()
+    {
+        $id = $_GET['id'] ?? null;
+        if (!$id) {
+            header('Location: ' . BASE_URL_ADMIN . '&action=tours/trash');
+            return;
+        }
+
+        try {
+            $result = $this->model->forceDelete($id);
+            if ($result) {
+                $_SESSION['success'] = 'Đã xóa vĩnh viễn tour!';
+            } else {
+                throw new Exception('Không thể xóa');
+            }
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Lỗi: ' . $e->getMessage();
+        }
+
+        header('Location: ' . BASE_URL_ADMIN . '&action=tours/trash');
+    }
+
+
     public function detail()
     {
         $id = $_GET['id'] ?? null;

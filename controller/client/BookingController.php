@@ -125,17 +125,29 @@ class ClientBookingController
 
             $this->bookingModel->commit();
 
-            // Gửi email giả lập (ghi log)
-            $emailContent = "Chào " . $_POST['full_name'] . ",\n\n";
-            $emailContent .= "Cảm ơn bạn đã đặt tour tại VietTour. Mã đơn hàng của bạn là: $bookingCode\n";
-            $emailContent .= "Tour: " . $tour['name'] . "\n";
-            $emailContent .= "Ngày khởi hành: " . $departure['departure_date'] . "\n";
-            $emailContent .= "Tổng tiền: " . number_format($totalPrice) . " VND\n\n";
-            $emailContent .= "Vui lòng hoàn tất thanh toán để xác nhận đơn hàng.\n";
-            
-            send_mail_log($_POST['email'], "Xác nhận đặt tour $bookingCode", $emailContent);
+            // Gửi email xác nhận booking qua PHPMailer
+            require_once PATH_ROOT . 'services/MailService.php';
+            $tour = $this->tourModel->findById($tourId);
+
+            $bookingArr = [
+                'id'           => $bookingId,
+                'booking_code' => $bookingCode,
+                'total_price'  => $totalPrice,
+            ];
+            $userArr = [
+                'full_name' => $_POST['full_name'],
+                'email'     => $_POST['email'],
+            ];
+            // Gửi email cho khách hàng
+            MailService::sendBookingConfirmation($userArr, $bookingArr, $tour ?? []);
+
+            // Thông báo admin
+            if (defined('MAIL_FROM') && MAIL_FROM !== 'your_email@gmail.com') {
+                MailService::notifyAdminNewBooking(MAIL_FROM, $bookingArr, $tour ?? [], $userArr);
+            }
 
             header('Location: ' . BASE_URL . '?action=booking-payment&code=' . $bookingCode);
+
 
         } catch (Exception $e) {
             $this->bookingModel->rollBack();

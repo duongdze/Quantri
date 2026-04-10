@@ -5,6 +5,12 @@ session_start();
 require_once './configs/env.php';
 require_once './configs/helper.php';
 
+// Load Composer autoloader (PHPMailer, etc.)
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+}
+
+
 // Development: show all errors so white pages reveal underlying PHP errors.
 // Remove or disable in production.
 ini_set('display_errors', '1');

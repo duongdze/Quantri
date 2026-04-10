@@ -462,18 +462,141 @@
             <!-- Reviews Section -->
             <section class="mb-5" id="reviews">
                 <div class="d-flex align-items-center justify-content-between mb-4">
-                    <h3 class="text-primary fw-bold mb-0">Đánh giá từ khách hàng</h3>
-                    <div class="d-flex align-items-center">
-                        <div class="text-warning me-2">
+                    <h3 class="text-primary fw-bold mb-0"><i class="fas fa-star me-2"></i>Đánh giá từ khách hàng</h3>
+                    <?php
+                    $avgRating    = round((float)($ratingSummary['avg_rating'] ?? 0), 1);
+                    $totalReviews = (int)($ratingSummary['total'] ?? 0);
+                    ?>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="text-warning">
                             <?php for($i=1; $i<=5; $i++): ?>
-                                <i class="<?= $i <= round($tour['avg_rating']) ? 'fas' : 'far' ?> fa-star"></i>
+                                <i class="<?= $i <= round($avgRating) ? 'fas' : 'far' ?> fa-star"></i>
                             <?php endfor; ?>
                         </div>
-                        <span class="fw-bold"><?= number_format($tour['avg_rating'], 1) ?>/5</span>
-                        <span class="text-muted ms-2">(<?= $tour['review_count'] ?> đánh giá)</span>
+                        <span class="fw-bold"><?= number_format($avgRating, 1) ?>/5</span>
+                        <span class="text-muted">(<?= $totalReviews ?> đánh giá)</span>
                     </div>
                 </div>
 
+                <!-- Rating Summary Bars -->
+                <?php if ($totalReviews > 0): ?>
+                <div class="bg-white p-4 rounded shadow-sm mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center border-end">
+                            <div style="font-size:3.5rem;font-weight:800;color:#f59e0b;line-height:1"><?= number_format($avgRating, 1) ?></div>
+                            <div class="text-warning my-1">
+                                <?php for($i=1; $i<=5; $i++): ?>
+                                    <i class="<?= $i <= round($avgRating) ? 'fas' : ($i - 0.5 <= $avgRating ? 'fas fa-star-half-alt' : 'far') ?> fa-star"></i>
+                                <?php endfor; ?>
+                            </div>
+                            <small class="text-muted"><?= $totalReviews ?> đánh giá</small>
+                        </div>
+                        <div class="col-md-9 ps-4">
+                            <?php foreach ([5,4,3,2,1] as $starNum):
+                                $count = (int)($ratingSummary['star'.$starNum] ?? 0);
+                                $pct   = $totalReviews > 0 ? round($count / $totalReviews * 100) : 0;
+                            ?>
+                            <div class="d-flex align-items-center mb-1">
+                                <span class="text-muted me-2" style="width:40px;font-size:.8rem"><?= $starNum ?> sao</span>
+                                <div class="flex-grow-1 bg-light rounded" style="height:8px;overflow:hidden">
+                                    <div class="bg-warning rounded" style="width:<?= $pct ?>%;height:100%"></div>
+                                </div>
+                                <span class="ms-2 text-muted" style="width:32px;font-size:.8rem"><?= $count ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Flash messages -->
+                <?php if (!empty($_SESSION['success'])): ?>
+                    <div class="alert alert-success alert-dismissible fade show">
+                        <i class="fas fa-check-circle me-2"></i><?= $_SESSION['success'] ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <?php unset($_SESSION['success']); ?>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($_SESSION['error'])): ?>
+                    <div class="alert alert-danger alert-dismissible fade show">
+                        <i class="fas fa-exclamation-circle me-2"></i><?= $_SESSION['error'] ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <?php unset($_SESSION['error']); ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Write Review Form -->
+                <?php if ($canReview): ?>
+                <div class="bg-white p-4 rounded shadow-sm mb-4 border border-primary border-opacity-25">
+                    <h5 class="fw-bold mb-3"><i class="fas fa-pen-alt me-2 text-primary"></i>Viết đánh giá của bạn</h5>
+                    <form action="<?= BASE_URL ?>?action=review-store" method="POST" id="reviewForm">
+                        <input type="hidden" name="tour_id" value="<?= $tour['id'] ?>">
+
+                        <!-- Star rating picker -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Đánh giá <span class="text-danger">*</span></label>
+                            <div class="star-picker d-flex gap-1" id="starPicker">
+                                <?php for($s = 1; $s <= 5; $s++): ?>
+                                    <input type="radio" name="rating" id="star<?= $s ?>" value="<?= $s ?>" class="d-none" required>
+                                    <label for="star<?= $s ?>" class="star-lbl fs-2" data-val="<?= $s ?>" style="cursor:pointer;color:#d1d5db;transition:color .1s">
+                                        <i class="fas fa-star"></i>
+                                    </label>
+                                <?php endfor; ?>
+                                <span class="ms-2 align-self-center text-muted small" id="starLabel">Chọn số sao</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nội dung đánh giá</label>
+                            <textarea class="form-control" name="comment" rows="4"
+                                      placeholder="Chia sẻ trải nghiệm của bạn về tour này…"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-paper-plane me-2"></i>Gửi đánh giá
+                        </button>
+                    </form>
+                    <script>
+                    (function(){
+                        const labels = document.querySelectorAll('#starPicker .star-lbl');
+                        const texts  = ['','Rất tệ','Tệ','Bình thường','Tốt','Tuyệt vời!'];
+                        let selected = 0;
+
+                        function paint(upTo) {
+                            labels.forEach((lbl, i) => {
+                                lbl.style.color = i < upTo ? '#f59e0b' : '#d1d5db';
+                            });
+                        }
+
+                        labels.forEach((lbl, i) => {
+                            lbl.addEventListener('mouseover', () => paint(i + 1));
+                            lbl.addEventListener('mouseleave', () => paint(selected));
+                            lbl.addEventListener('click', () => {
+                                selected = i + 1;
+                                paint(selected);
+                                document.getElementById('starLabel').textContent = texts[selected];
+                            });
+                        });
+                    })();
+                    </script>
+                </div>
+                <?php elseif ($alreadyReviewed): ?>
+                <div class="alert alert-success mb-4">
+                    <i class="fas fa-check-circle me-2"></i>Bạn đã đánh giá tour này. Cảm ơn chia sẻ của bạn!
+                </div>
+                <?php elseif (!empty($_SESSION['user'])): ?>
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Chỉ có thể đánh giá sau khi đã đặt và hoàn thành tour.
+                    <a href="<?= BASE_URL ?>?action=tour-list" class="alert-link ms-2">Khám phá tour ngay</a>
+                </div>
+                <?php else: ?>
+                <div class="alert alert-light border mb-4">
+                    <i class="fas fa-lock me-2"></i>
+                    <a href="<?= BASE_URL ?>?action=login" class="fw-bold">Đăng nhập</a> để viết đánh giá về tour này.
+                </div>
+                <?php endif; ?>
+
+                <!-- Review List -->
                 <?php if (!empty($reviews)): ?>
                     <div class="reviews-list">
                         <?php foreach($reviews as $rev): ?>
@@ -481,26 +604,29 @@
                                 <div class="d-flex justify-content-between mb-3">
                                     <div class="d-flex align-items-center">
                                         <div class="review-avatar me-3">
-                                            <?php if (!empty($rev['user_avatar'])): ?>
-                                                <img src="<?= BASE_ASSETS_UPLOADS . $rev['user_avatar'] ?>" alt="User" class="rounded-circle" width="48" height="48">
+                                            <?php if (!empty($rev['avatar'])): ?>
+                                                <img src="<?= BASE_ASSETS_UPLOADS . $rev['avatar'] ?>" alt="User" class="rounded-circle" width="48" height="48" style="object-fit:cover">
                                             <?php else: ?>
-                                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px">
-                                                    <?= strtoupper(substr($rev['user_name'], 0, 1)) ?>
+                                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:48px;height:48px">
+                                                    <?= strtoupper(mb_substr($rev['full_name'] ?? 'U', 0, 1)) ?>
                                                 </div>
                                             <?php endif; ?>
                                         </div>
                                         <div>
-                                            <h6 class="fw-bold mb-0"><?= htmlspecialchars($rev['user_name']) ?></h6>
+                                            <h6 class="fw-bold mb-0"><?= htmlspecialchars($rev['full_name'] ?? 'Khách hàng') ?></h6>
                                             <div class="text-warning small">
                                                 <?php for($i=1; $i<=5; $i++): ?>
                                                     <i class="<?= $i <= $rev['rating'] ? 'fas' : 'far' ?> fa-star"></i>
                                                 <?php endfor; ?>
+                                                <span class="text-muted ms-1"><?= $rev['rating'] ?>/5</span>
                                             </div>
                                         </div>
                                     </div>
                                     <small class="text-muted"><?= date('d/m/Y', strtotime($rev['created_at'])) ?></small>
                                 </div>
-                                <p class="text-muted mb-0"><?= nl2br(htmlspecialchars($rev['comment'])) ?></p>
+                                <?php if (!empty($rev['comment'])): ?>
+                                    <p class="text-muted mb-0"><?= nl2br(htmlspecialchars($rev['comment'])) ?></p>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -511,6 +637,7 @@
                     </div>
                 <?php endif; ?>
             </section>
+
         </div>
 
         <!-- Right Stick Sidebar -->

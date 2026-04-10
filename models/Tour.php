@@ -167,7 +167,11 @@ class Tour extends BaseModel
             $params[':rating_min'] = $filters['rating_min'];
         }
 
-        $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+        // Always filter out soft-deleted tours
+        $whereConditions[] = 't.deleted_at IS NULL';
+
+        $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : 'WHERE t.deleted_at IS NULL';
+
 
         // Build ORDER BY - Active first, then featured, then by selected sort, inactive last
         $orderBy = "CASE WHEN t.status = 'active' THEN 0 ELSE 1 END, t.featured DESC, t.created_at DESC";
@@ -809,4 +813,101 @@ class Tour extends BaseModel
         $stmt->execute(['tour_id' => $tourId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // ─────────────────────────────────────────────
+    //  SOFT DELETE
+    // ─────────────────────────────────────────────
+
+    /**
+     * Xóa mềm: set deleted_at = NOW()
+     */
+    public function softDelete($id)
+    {
+        return $this->update(
+            ['deleted_at' => date('Y-m-d H:i:s')],
+            'id = :id',
+            ['id' => $id]
+        );
+    }
+
+    /**
+     * Khôi phục tour đã xóa mềm
+     */
+    public function restore($id)
+    {
+        return $this->update(
+            ['deleted_at' => null],
+            'id = :id',
+            ['id' => $id]
+        );
+    }
+
+    /**
+     * Xóa vĩnh viễn (kèm dữ liệu liên quan)
+     */
+    public function forceDelete($id)
+    {
+        return $this->removeTour($id);
+    }
+
+    /**
+     * Lấy danh sách tour đã xóa mềm (Thùng rác) – dành cho Admin
+     */
+    public function getTrashed($page = 1, $perPage = 12, $filters = [])
+    {
+        $page    = max(1, (int)$page);
+        $perPage = max(5, min(50, (int)$perPage));
+        $offset  = ($page - 1) * $perPage;
+
+        $where  = ['t.deleted_at IS NOT NULL'];
+        $params = [];
+
+        if (!empty($filters['keyword'])) {
+            $where[] = '(t.name LIKE :keyword OR t.description LIKE :keyword)';
+            $params[':keyword'] = '%' . $filters['keyword'] . '%';
+        }
+
+        $whereStr = 'WHERE ' . implode(' AND ', $where);
+
+        $countSql  = "SELECT COUNT(DISTINCT t.id) FROM {$this->table} AS t $whereStr";
+        $countStmt = self::$pdo->prepare($countSql);
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetchColumn();
+
+        $sql = "SELECT t.*, tc.name as category_name,
+                    MAX(CASE WHEN tgi.main_img = 1 THEN tgi.image_url END) AS main_image
+                FROM {$this->table} AS t
+                LEFT JOIN tour_categories tc ON t.category_id = tc.id
+                LEFT JOIN tour_gallery_images tgi ON t.id = tgi.tour_id
+                $whereStr
+                GROUP BY t.id, tc.name
+                ORDER BY t.deleted_at DESC
+                LIMIT :limit OFFSET :offset";
+
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+        $stmt->execute();
+
+        return [
+            'data'        => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $perPage,
+            'total_pages' => (int)ceil($total / $perPage),
+        ];
+    }
+
+    /**
+     * Đếm số tour trong thùng rác
+     */
+    public function countTrashed()
+    {
+        $stmt = self::$pdo->query(
+            "SELECT COUNT(*) FROM {$this->table} WHERE deleted_at IS NOT NULL"
+        );
+        return (int)$stmt->fetchColumn();
+    }
 }
+
