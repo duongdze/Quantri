@@ -110,6 +110,7 @@ match ($action) {
     'bookings/update-checkin'               => (new BookingController)->updateCheckin(), // AJAX endpoint
     'bookings/bulk-checkin'                 => (new BookingController)->bulkCheckin(), // AJAX endpoint
     'bookings/print-group-list'             => (new BookingController)->printGroupList(),
+    'bookings/export-pdf'                   => (new BookingController)->exportInvoicePdf(),
 
 
 

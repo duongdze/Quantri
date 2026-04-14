@@ -7,6 +7,7 @@ class GuideController
 
     public function __construct()
     {
+        check_role(['admin', 'guide']);
         $this->model = new Guide();
     }
 

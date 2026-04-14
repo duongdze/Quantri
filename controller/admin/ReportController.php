@@ -16,6 +16,7 @@ class ReportController
 
     public function __construct()
     {
+        check_role(['admin']);
         $this->financialReport = new FinancialReport();
         $this->tourModel = new Tour();
         $this->bookingModel = new Booking();

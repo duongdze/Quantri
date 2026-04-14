@@ -131,85 +131,151 @@
                 <div class="col-lg-7">
                     <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
                         <div class="card-header bg-white border-bottom p-4">
-                            <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-money-bill-wave me-2"></i>Thông Tin Chuyển Khoản</h5>
+                            <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-money-bill-wave me-2"></i>Chọn Phương Thức Thanh Toán</h5>
                         </div>
                         <div class="card-body p-4">
-                            <div class="row align-items-center">
-                                <div class="col-md-5 text-center mb-4 mb-md-0">
-                                    <div class="qr-card p-3 d-inline-block bg-white">
-                                        <!-- QR Code Generation Link -->
-                                        <!-- https://img.vietqr.io/image/[BANK_ID]-[ACCOUNT_NO]-[TEMPLATE].png?amount=[AMOUNT]&addInfo=[CONTENT] -->
-                                        <?php 
-                                            // Config Bank Info (You can move this to config later)
-                                            $bankId = 'MB'; // MB Bank
-                                            $accountNo = '0986951086'; 
-                                            $accountName = 'Kim Van Kien';
-                                            $amount = $booking['total_price'];
-                                            $content = $code . ' THANH TOAN';
-                                            
-                                            $qrUrl = "https://img.vietqr.io/image/{$bankId}-{$accountNo}-compact2.jpg?amount={$amount}&addInfo=" . urlencode($content) . "&accountName=" . urlencode($accountName);
-                                        ?>
-                                        <img src="<?= $qrUrl ?>" alt="QR Payment" class="img-fluid rounded" style="max-width: 200px;">
-                                        <p class="small text-muted mt-2 mb-0">Quét mã để thanh toán nhanh</p>
-                                    </div>
-                                </div>
-                                <div class="col-md-7">
-                                    <div class="d-flex flex-column gap-3">
-                                        <div class="d-flex p-3 bg-light rounded-3 align-items-center">
-                                            <div class="flex-shrink-0">
-                                                <div class="rounded-circle bg-white p-2 text-primary shadow-sm" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
-                                                    <i class="fas fa-university fa-lg"></i>
-                                                </div>
-                                            </div>
-                                            <div class="flex-grow-1 ms-3">
-                                                <small class="text-muted d-block">Ngân hàng</small>
-                                                <span class="fw-bold">MB Bank (Quân Đội)</span>
+                            <!-- Payment Method Tabs -->
+                            <ul class="nav nav-pills mb-4 gap-2" id="paymentTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active rounded-pill px-4" id="bank-tab" data-bs-toggle="pill" data-bs-target="#bankTransfer" type="button" role="tab">
+                                        <i class="fas fa-university me-2"></i>Chuyển khoản
+                                    </button>
+                                </li>
+                                <?php if (defined('VNPAY_ENABLED') && VNPAY_ENABLED): ?>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link rounded-pill px-4" id="vnpay-tab" data-bs-toggle="pill" data-bs-target="#vnpayPayment" type="button" role="tab">
+                                        <i class="fas fa-credit-card me-2"></i>VNPay
+                                    </button>
+                                </li>
+                                <?php endif; ?>
+                            </ul>
+
+                            <div class="tab-content" id="paymentTabContent">
+                                <!-- Tab: Bank Transfer -->
+                                <div class="tab-pane fade show active" id="bankTransfer" role="tabpanel">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-5 text-center mb-4 mb-md-0">
+                                            <div class="qr-card p-3 d-inline-block bg-white">
+                                                <?php 
+                                                    $bankId = 'MB';
+                                                    $accountNo = '0986951086'; 
+                                                    $accountName = 'Kim Van Kien';
+                                                    $amount = $booking['total_price'];
+                                                    $content = $code . ' THANH TOAN';
+                                                    $qrUrl = "https://img.vietqr.io/image/{$bankId}-{$accountNo}-compact2.jpg?amount={$amount}&addInfo=" . urlencode($content) . "&accountName=" . urlencode($accountName);
+                                                ?>
+                                                <img src="<?= $qrUrl ?>" alt="QR Payment" class="img-fluid rounded" style="max-width: 200px;">
+                                                <p class="small text-muted mt-2 mb-0">Quét mã để thanh toán nhanh</p>
                                             </div>
                                         </div>
+                                        <div class="col-md-7">
+                                            <div class="d-flex flex-column gap-3">
+                                                <div class="d-flex p-3 bg-light rounded-3 align-items-center">
+                                                    <div class="flex-shrink-0">
+                                                        <div class="rounded-circle bg-white p-2 text-primary shadow-sm" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                                            <i class="fas fa-university fa-lg"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-grow-1 ms-3">
+                                                        <small class="text-muted d-block">Ngân hàng</small>
+                                                        <span class="fw-bold">MB Bank (Quân Đội)</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="d-flex p-3 bg-light rounded-3 align-items-center">
+                                                    <div class="flex-shrink-0">
+                                                        <div class="rounded-circle bg-white p-2 text-primary shadow-sm" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                                            <i class="fas fa-credit-card fa-lg"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-grow-1 ms-3">
+                                                        <small class="text-muted d-block">Số tài khoản</small>
+                                                        <span class="fw-bold fs-5 text-dark" id="accNum"><?= $accountNo ?></span>
+                                                    </div>
+                                                    <button class="btn btn-link btn-sm copy-btn" onclick="copyToClipboard('accNum')">
+                                                        <i class="far fa-copy"></i>
+                                                    </button>
+                                                </div>
+
+                                                <div class="d-flex p-3 bg-light rounded-3 align-items-center">
+                                                    <div class="flex-shrink-0">
+                                                        <div class="rounded-circle bg-white p-2 text-primary shadow-sm" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                                            <i class="fas fa-user fa-lg"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-grow-1 ms-3">
+                                                        <small class="text-muted d-block">Chủ tài khoản</small>
+                                                        <span class="fw-bold"><?= $accountName ?></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex p-3 bg-light rounded-3 align-items-center border border-warning bg-warning-subtle">
+                                                    <div class="flex-shrink-0">
+                                                        <div class="rounded-circle bg-white p-2 text-warning shadow-sm" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                                            <i class="fas fa-comment-alt fa-lg"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-grow-1 ms-3">
+                                                        <small class="text-muted d-block">Nội dung chuyển khoản</small>
+                                                        <span class="fw-bold text-danger fs-5" id="transContent"><?= $code ?> THANH TOAN</span>
+                                                    </div>
+                                                    <button class="btn btn-link btn-sm copy-btn text-warning" onclick="copyToClipboard('transContent')">
+                                                        <i class="far fa-copy"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <?php if (defined('VNPAY_ENABLED') && VNPAY_ENABLED): ?>
+                                <!-- Tab: VNPay -->
+                                <div class="tab-pane fade" id="vnpayPayment" role="tabpanel">
+                                    <div class="text-center py-4">
+                                        <div class="mb-4">
+                                            <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle rounded-circle" style="width: 80px; height: 80px;">
+                                                <i class="fas fa-shield-alt fa-2x text-primary"></i>
+                                            </div>
+                                        </div>
+                                        <h5 class="fw-bold mb-2">Thanh toán qua VNPay</h5>
+                                        <p class="text-muted mb-4">Thanh toán an toàn bằng thẻ ATM/Visa/MasterCard hoặc QR Pay qua VNPay</p>
                                         
-                                        <div class="d-flex p-3 bg-light rounded-3 align-items-center">
-                                            <div class="flex-shrink-0">
-                                                <div class="rounded-circle bg-white p-2 text-primary shadow-sm" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
-                                                    <i class="fas fa-credit-card fa-lg"></i>
+                                        <div class="row justify-content-center mb-4">
+                                            <div class="col-md-8">
+                                                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                                                    <span class="badge bg-light text-dark border px-3 py-2"><i class="fas fa-credit-card me-1"></i> ATM nội địa</span>
+                                                    <span class="badge bg-light text-dark border px-3 py-2"><i class="fab fa-cc-visa me-1"></i> Visa</span>
+                                                    <span class="badge bg-light text-dark border px-3 py-2"><i class="fab fa-cc-mastercard me-1"></i> MasterCard</span>
+                                                    <span class="badge bg-light text-dark border px-3 py-2"><i class="fas fa-qrcode me-1"></i> QR Pay</span>
                                                 </div>
-                                            </div>
-                                            <div class="flex-grow-1 ms-3">
-                                                <small class="text-muted d-block">Số tài khoản</small>
-                                                <span class="fw-bold fs-5 text-dark" id="accNum"><?= $accountNo ?></span>
-                                            </div>
-                                            <button class="btn btn-link btn-sm copy-btn" onclick="copyToClipboard('accNum')">
-                                                <i class="far fa-copy"></i>
-                                            </button>
-                                        </div>
-
-                                        <div class="d-flex p-3 bg-light rounded-3 align-items-center">
-                                            <div class="flex-shrink-0">
-                                                <div class="rounded-circle bg-white p-2 text-primary shadow-sm" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
-                                                    <i class="fas fa-user fa-lg"></i>
-                                                </div>
-                                            </div>
-                                            <div class="flex-grow-1 ms-3">
-                                                <small class="text-muted d-block">Chủ tài khoản</small>
-                                                <span class="fw-bold"><?= $accountName ?></span>
                                             </div>
                                         </div>
 
-                                        <div class="d-flex p-3 bg-light rounded-3 align-items-center border border-warning bg-warning-subtle">
-                                            <div class="flex-shrink-0">
-                                                <div class="rounded-circle bg-white p-2 text-warning shadow-sm" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
-                                                    <i class="fas fa-comment-alt fa-lg"></i>
-                                                </div>
+                                        <div class="bg-light rounded-4 p-4 mb-4 mx-auto" style="max-width: 400px;">
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span class="text-muted">Mã đơn hàng:</span>
+                                                <span class="fw-bold"><?= $code ?></span>
                                             </div>
-                                            <div class="flex-grow-1 ms-3">
-                                                <small class="text-muted d-block">Nội dung chuyển khoản</small>
-                                                <span class="fw-bold text-danger fs-5" id="transContent"><?= $code ?> THANH TOAN</span>
+                                            <div class="d-flex justify-content-between">
+                                                <span class="text-muted">Số tiền:</span>
+                                                <span class="fw-bold text-primary fs-5"><?= number_format($booking['total_price'], 0, ',', '.') ?>đ</span>
                                             </div>
-                                            <button class="btn btn-link btn-sm copy-btn text-warning" onclick="copyToClipboard('transContent')">
-                                                <i class="far fa-copy"></i>
-                                            </button>
+                                        </div>
+
+                                        <a href="<?= BASE_URL ?>?action=vnpay-process&code=<?= $code ?>" 
+                                           class="btn btn-primary btn-lg px-5 py-3 rounded-pill shadow-sm fw-bold">
+                                            <i class="fas fa-lock me-2"></i>Thanh toán VNPay ngay
+                                        </a>
+
+                                        <div class="mt-3">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Bạn sẽ được chuyển sang trang VNPay để hoàn tất thanh toán
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

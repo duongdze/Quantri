@@ -7,6 +7,7 @@ class PostController
 
     public function __construct()
     {
+        check_role(['admin']);
         $this->model = new Post();
         // Chỉ admin mới truy cập
         if (($_SESSION['user']['role'] ?? '') !== 'admin') {

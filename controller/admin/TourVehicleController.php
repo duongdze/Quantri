@@ -11,6 +11,7 @@ class TourVehicleController
 
     public function __construct()
     {
+        check_role(['admin']);
         $this->model = new TourVehicle();
         $this->busCompanyModel = new BusCompany();
         $this->assignmentModel = new TourAssignment();

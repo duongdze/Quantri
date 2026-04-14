@@ -8,6 +8,7 @@ class ReviewController
 
     public function __construct()
     {
+        check_role(['admin']);
         $this->model = new Review();
         if (($_SESSION['user']['role'] ?? '') !== 'admin') {
             $_SESSION['error'] = 'Không có quyền truy cập.';

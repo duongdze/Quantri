@@ -12,9 +12,24 @@ if (!function_exists('debug')) {
 if (!function_exists('upload_file')) {
     function upload_file($folder, $file)
     {
-        $targetFile = $folder . '/' . time() . '-' . $file["name"];
+        $targetFile = $folder . '/' . time() . '-' . basename($file["name"]);
+        $fullPath = PATH_ASSETS_UPLOADS . $targetFile;
 
-        if (move_uploaded_file($file["tmp_name"], PATH_ASSETS_UPLOADS . $targetFile)) {
+        // Ensure directory exists
+        $dir = dirname($fullPath);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
+        // Tự động nén nếu là hình ảnh
+        $mime = mime_content_type($file["tmp_name"]);
+        if (strpos($mime, 'image/') === 0 && in_array($mime, ['image/jpeg', 'image/png', 'image/webp'])) {
+            if (compress_image($file["tmp_name"], $fullPath, 70)) {
+                return $targetFile;
+            }
+        }
+
+        if (move_uploaded_file($file["tmp_name"], $fullPath)) {
             return $targetFile;
         }
 
@@ -114,3 +129,43 @@ if (!function_exists('send_mail_log')) {
         return file_put_contents($logFile, $logEntry, FILE_APPEND);
     }
 }
+
+if (!function_exists('compress_image')) {
+    /**
+     * Nén hình ảnh để tối ưu dung lượng
+     *
+     * @param string $source Caching source file
+     * @param string $destination Nơi lưu sau khi nén
+     * @param int $quality Chất lượng hình (0-100), mặc định 75
+     * @return bool
+     */
+    function compress_image($source, $destination, $quality = 75) {
+        $info = getimagesize($source);
+        if (!$info) return false;
+
+        if ($info['mime'] == 'image/jpeg') 
+            $image = imagecreatefromjpeg($source);
+        elseif ($info['mime'] == 'image/gif') 
+            $image = imagecreatefromgif($source);
+        elseif ($info['mime'] == 'image/png') 
+            $image = imagecreatefrompng($source);
+        elseif ($info['mime'] == 'image/webp')
+            $image = imagecreatefromwebp($source);
+        else 
+            return false;
+
+        // Lưu ảnh nén
+        if ($info['mime'] == 'image/png') {
+            // PNG dùng mức nén 0-9
+            $pngQuality = round((100 - $quality) / 10);
+            imagepng($image, $destination, $pngQuality);
+        } else if ($info['mime'] == 'image/webp') {
+            imagewebp($image, $destination, $quality);
+        } else {
+            imagejpeg($image, $destination, $quality);
+        }
+
+        return true;
+    }
+}
+

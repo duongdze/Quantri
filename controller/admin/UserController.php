@@ -6,6 +6,7 @@ class UserController
 
     public function __construct()
     {
+        check_role(['admin']);
         $this->model = new User();
     }
 

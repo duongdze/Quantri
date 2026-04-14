@@ -251,4 +251,99 @@ class ClientBookingController
         $pageTitle = 'Chi tiết đơn hàng – VietTour';
         require_once PATH_VIEW_CLIENT . 'pages/bookings/detail.php';
     }
+
+    /**
+     * Xử lý thanh toán VNPay — redirect sang VNPay gateway
+     */
+    public function processVnpay()
+    {
+        $code = $_GET['code'] ?? '';
+        if (!$code) {
+            header('Location: ' . BASE_URL);
+            exit;
+        }
+
+        $bookingId = intval(substr($code, 2));
+        $booking = $this->bookingModel->find('*', 'id = :id', ['id' => $bookingId]);
+
+        if (!$booking || !defined('VNPAY_ENABLED') || !VNPAY_ENABLED) {
+            $_SESSION['error'] = 'Không thể xử lý thanh toán VNPay.';
+            header('Location: ' . BASE_URL . '?action=booking-payment&code=' . $code);
+            exit;
+        }
+
+        require_once PATH_ROOT . 'services/VNPayService.php';
+
+        $returnUrl = BASE_URL . '?action=vnpay-return';
+        $orderInfo = 'Thanh toan tour ' . $code;
+
+        $paymentUrl = VNPayService::createPaymentUrl($booking, $orderInfo, $returnUrl);
+        header('Location: ' . $paymentUrl);
+        exit;
+    }
+
+    /**
+     * VNPay callback — xử lý kết quả trả về từ VNPay
+     */
+    public function vnpayReturn()
+    {
+        require_once PATH_ROOT . 'services/VNPayService.php';
+
+        $result = VNPayService::verifyReturn($_GET);
+
+        if ($result['success']) {
+            // Cập nhật trạng thái booking thành "paid"
+            $bookingCode = $result['booking_code'];
+            $bookingId = intval(substr($bookingCode, 2));
+
+            $this->bookingModel->update(
+                ['status' => 'paid', 'payment_method' => 'vnpay'],
+                'id = :id',
+                ['id' => $bookingId]
+            );
+
+            $_SESSION['success'] = 'Thanh toán VNPay thành công! Mã giao dịch: ' . ($result['transaction_no'] ?? '');
+            header('Location: ' . BASE_URL . '?action=booking-success&code=' . $bookingCode);
+        } else {
+            $_SESSION['error'] = 'Thanh toán thất bại: ' . $result['message'];
+            $bookingCode = $result['booking_code'];
+            header('Location: ' . BASE_URL . '?action=booking-payment&code=' . $bookingCode);
+        }
+        exit;
+    }
+
+    /**
+     * Tải hóa đơn PDF
+     */
+    public function downloadInvoice()
+    {
+        if (empty($_SESSION['user'])) {
+            header('Location: ' . BASE_URL . '?action=login');
+            exit;
+        }
+
+        $code = $_GET['code'] ?? '';
+        if (!$code) {
+            header('Location: ' . BASE_URL . '?action=my-bookings');
+            exit;
+        }
+
+        $bookingId = intval(substr($code, 2));
+        $booking = $this->bookingModel->getBookingWithDetails($bookingId);
+
+        if (!$booking || $booking['customer_id'] != $_SESSION['user']['user_id']) {
+            $_SESSION['error'] = 'Không tìm thấy đơn hàng.';
+            header('Location: ' . BASE_URL . '?action=my-bookings');
+            exit;
+        }
+
+        // Lấy danh sách khách
+        $pdo = BaseModel::getPdo();
+        $stmt = $pdo->prepare("SELECT * FROM booking_customers WHERE booking_id = :bid");
+        $stmt->execute([':bid' => $bookingId]);
+        $passengers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        require_once PATH_ROOT . 'services/PdfService.php';
+        PdfService::generateBookingInvoice($booking, $passengers);
+    }
 }

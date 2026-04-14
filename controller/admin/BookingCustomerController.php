@@ -2,6 +2,11 @@
 require_once PATH_MODEL . 'BookingCustomerModel.php';
 
 class BookingCustomerController {
+    public function __construct()
+    {
+        check_role(['admin', 'guide']);
+    }
+
     public function listByBooking() {
         $bookingId = $_GET['id'] ?? $_GET['booking_id'] ?? null;
         if (!$bookingId) {

@@ -7,6 +7,7 @@ class ItineraryController
 
     public function __construct()
     {
+        check_role(['admin']);
         $this->model = new Itinerary();
     }
 

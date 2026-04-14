@@ -1027,4 +1027,33 @@ class BookingController
         }
         exit;
     }
+
+    /**
+     * Xuất hóa đơn PDF cho booking (Admin)
+     */
+    public function exportInvoicePdf()
+    {
+        check_role(['admin']);
+
+        $id = $_GET['id'] ?? null;
+        if (!$id) {
+            $_SESSION['error'] = 'Không tìm thấy booking';
+            header('Location: ' . BASE_URL_ADMIN . '&action=bookings');
+            exit;
+        }
+
+        $booking = $this->model->getBookingWithDetails($id);
+        if (!$booking) {
+            $_SESSION['error'] = 'Booking không tồn tại';
+            header('Location: ' . BASE_URL_ADMIN . '&action=bookings');
+            exit;
+        }
+
+        // Lấy danh sách khách
+        $bookingCustomerModel = new BookingCustomer();
+        $passengers = $bookingCustomerModel->getByBooking($id);
+
+        require_once PATH_ROOT . 'services/PdfService.php';
+        PdfService::generateBookingInvoice($booking, $passengers);
+    }
 }

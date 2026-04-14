@@ -179,6 +179,26 @@ switch ($action) {
         (new ClientReviewController())->store();
         break;
 
+    // ─── Thanh toán VNPay ───
+    case 'vnpay-process':
+        require_once 'controller/client/BookingController.php';
+        $controller = new ClientBookingController();
+        $controller->processVnpay();
+        break;
+
+    case 'vnpay-return':
+        require_once 'controller/client/BookingController.php';
+        $controller = new ClientBookingController();
+        $controller->vnpayReturn();
+        break;
+
+    // ─── Tải hóa đơn PDF ───
+    case 'booking-invoice':
+        require_once 'controller/client/BookingController.php';
+        $controller = new ClientBookingController();
+        $controller->downloadInvoice();
+        break;
+
     // ─── 404 ───
     default:
 

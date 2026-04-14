@@ -1,7 +1,7 @@
-<?php
+    <?php
 
-define('BASE_URL', 'http://localhost/Quantriagile/');
-define('BASE_URL_ADMIN', 'http://localhost/Quantriagile/?mode=admin');
+define('BASE_URL', 'http://localhost/Quantri/');
+define('BASE_URL_ADMIN', 'http://localhost/Quantri/?mode=admin');
 
 define('PATH_ROOT',                 __DIR__ . '/../');
 
@@ -42,3 +42,12 @@ define('MAIL_FROM',       'your_email@gmail.com');
 define('MAIL_FROM_NAME',  'VietTour');
 define('MAIL_ENABLED',    false); // Đặt true khi đã cấu hình SMTP thật
 
+// ====== VNPay Sandbox Config ======
+// Đăng ký tài khoản sandbox tại: https://sandbox.vnpayment.vn/
+define('VNPAY_TMN_CODE',    'CGXZLS0Z');                              // Mã website (TmnCode) sandbox
+define('VNPAY_HASH_SECRET', 'RAOEXHYVSDDIIENYWSLDIIZTANXUXZFJ');     // Chuỗi bí mật (HashSecret) sandbox
+define('VNPAY_URL',         'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'); // URL sandbox
+define('VNPAY_ENABLED',    true); // Đặt false để tắt VNPay
+
+// ====== PDF / Upload Config ======
+define('PATH_PDF_TEMP',    PATH_ROOT . 'assets/uploads/pdf/');

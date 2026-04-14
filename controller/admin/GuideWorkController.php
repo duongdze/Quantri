@@ -3,6 +3,11 @@ require_once 'models/GuideWorkModel.php';
 
 class GuideWorkController
 {
+    public function __construct()
+    {
+        check_role(['admin', 'guide']);
+    }
+
     public function schedule()
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {

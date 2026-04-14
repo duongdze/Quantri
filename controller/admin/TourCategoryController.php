@@ -8,6 +8,7 @@ class TourCategoryController
 
     public function __construct()
     {
+        check_role(['admin']);
         $this->model = new TourCategory();
         require_once 'models/Tour.php';
         $this->tourModel = new Tour();

@@ -12,6 +12,7 @@ class TourVersionController
 
     public function __construct()
     {
+        check_role(['admin']);
         $this->model = new TourVersion();
         require_once 'models/Tour.php';
         $this->tourModel = new Tour();
