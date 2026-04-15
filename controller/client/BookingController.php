@@ -172,6 +172,9 @@ class ClientBookingController
              exit;
         }
 
+        $tour = $this->tourModel->findById($booking['tour_id']);
+
+
         require_once PATH_VIEW_CLIENT . 'pages/bookings/payment.php';
     }
 

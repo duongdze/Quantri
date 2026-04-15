@@ -134,7 +134,7 @@
                         </div>
                     <?php endif; ?>
 
-                    <form action="<?= BASE_URL ?>?action=booking-process" method="POST" id="bookingForm">
+                    <form action="<?= BASE_URL ?>?action=booking-store" method="POST" id="bookingForm">
                         <?= csrf_field() ?>
                         <input type="hidden" name="tour_id" value="<?= $tour['id'] ?>">
                         <input type="hidden" name="departure_id" value="<?= $departure['id'] ?>">
