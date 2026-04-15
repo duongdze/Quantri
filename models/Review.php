@@ -62,7 +62,7 @@ class Review extends BaseModel
     {
         $stmt = self::$pdo->prepare(
             "SELECT COUNT(*) FROM bookings
-             WHERE tour_id = :tid AND user_id = :uid AND status IN ('confirmed','completed','paid')"
+             WHERE tour_id = :tid AND customer_id = :uid AND status IN ('confirmed','completed','paid')"
         );
         $stmt->execute([':tid' => $tourId, ':uid' => $userId]);
         return (int)$stmt->fetchColumn() > 0;

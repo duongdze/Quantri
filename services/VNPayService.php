@@ -25,7 +25,7 @@ class VNPayService
         $vnp_TxnRef   = $bookingCode . '_' . time(); // Mã giao dịch duy nhất
         $vnp_Amount   = (int)$booking['total_price'] * 100; // VNPay tính bằng đồng × 100
         $vnp_Locale   = 'vn';
-        $vnp_IpAddr   = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        $vnp_IpAddr   = '127.0.0.1'; // Bắt buộc IPv4 format cho VNPay, ::1 của localhost sẽ gây lỗi chữ ký
 
         $inputData = [
             "vnp_Version"    => "2.1.0",
