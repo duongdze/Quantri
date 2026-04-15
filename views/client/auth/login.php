@@ -38,9 +38,15 @@ require_once PATH_VIEW_CLIENT . 'default/header.php';
             </div>
 
             <div class="form-group">
-                <label><i class="fas fa-lock"></i> Mật khẩu</label>
-                <input type="password" name="password" class="form-control-vt"
-                       placeholder="••••••••" required>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <label style="margin-bottom: 0;"><i class="fas fa-lock"></i> Mật khẩu</label>
+                    <a href="<?= BASE_URL ?>?action=forgot-password" style="font-size: 14px; text-decoration: none; color: #007bff;">Quên mật khẩu?</a>
+                </div>
+                <div style="position: relative;">
+                    <input type="password" id="password" name="password" class="form-control-vt"
+                           placeholder="••••••••" required style="padding-right: 40px;">
+                    <i class="fas fa-eye" id="togglePassword" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6c757d;"></i>
+                </div>
             </div>
 
             <button type="submit" class="btn-submit">
@@ -53,5 +59,22 @@ require_once PATH_VIEW_CLIENT . 'default/header.php';
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+        }
+    });
+</script>
 
 <?php require_once PATH_VIEW_CLIENT . 'default/footer.php'; ?>
