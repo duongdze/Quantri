@@ -524,6 +524,14 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                                 title="Lấy Link & QR">
                                                 <i class="fas fa-qrcode"></i>
                                             </button>
+                                            <button type="button"
+                                                class="btn-action delete-tour text-danger"
+                                                data-id="<?= $tour['id'] ?>"
+                                                data-name="<?= htmlspecialchars($tour['name']) ?>"
+                                                data-bs-toggle="tooltip"
+                                                title="Xóa tour">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

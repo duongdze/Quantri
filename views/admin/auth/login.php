@@ -571,14 +571,6 @@
                 </div>
             </div>
 
-            <div class="remember-forgot">
-                <label class="remember-me">
-                    <input type="checkbox" name="remember">
-                    <span>Ghi nhớ đăng nhập</span>
-                </label>
-                <a href="#" class="forgot-link">Quên mật khẩu?</a>
-            </div>
-
             <button type="submit" class="login-btn">
                 <i class="fas fa-sign-in-alt"></i>
                 Đăng nhập

@@ -824,7 +824,10 @@ class Tour extends BaseModel
     public function softDelete($id)
     {
         return $this->update(
-            ['deleted_at' => date('Y-m-d H:i:s')],
+            [
+                'deleted_at' => date('Y-m-d H:i:s'),
+                'status' => 'Disabled'
+            ],
             'id = :id',
             ['id' => $id]
         );

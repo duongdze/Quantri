@@ -141,6 +141,11 @@ class TourController
             $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
             $maxFileSize = 5 * 1024 * 1024; // 5MB
 
+            // Kiểm tra lỗi upload từ server (vd: vượt giới hạn upload_max_filesize của PHP)
+            if (isset($_FILES['main_image']['error']) && $_FILES['main_image']['error'] !== UPLOAD_ERR_OK && $_FILES['main_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+                throw new Exception("Lỗi tải lên ảnh đại diện. File có thể vượt quá giới hạn của máy chủ (Mã lỗi: " . $_FILES['main_image']['error'] . ").");
+            }
+
             // Handle main image upload (if provided)
             if (!empty($_FILES['main_image']['tmp_name'])) {
                 $tmpName = $_FILES['main_image']['tmp_name'];
@@ -174,6 +179,15 @@ class TourController
                     ];
                 } else {
                     throw new Exception("Không thể tải lên ảnh đại diện: {$originalName}");
+                }
+            }
+
+            // Kiểm tra lỗi upload ảnh thư viện từ server
+            if (isset($_FILES['gallery_images']['error']) && is_array($_FILES['gallery_images']['error'])) {
+                foreach ($_FILES['gallery_images']['error'] as $err) {
+                    if ($err !== UPLOAD_ERR_OK && $err !== UPLOAD_ERR_NO_FILE) {
+                         throw new Exception("Lỗi tải lên ảnh thư viện. File có thể vượt quá giới hạn của máy chủ (Mã lỗi: " . $err . ").");
+                    }
                 }
             }
 
@@ -423,6 +437,11 @@ class TourController
             // Debug: Log toàn bộ FILES data
             error_log("Complete FILES data: " . print_r($_FILES, true));
 
+            // Kiểm tra lỗi upload từ server (vd: vượt giới hạn upload_max_filesize của PHP)
+            if (isset($_FILES['main_image']['error']) && $_FILES['main_image']['error'] !== UPLOAD_ERR_OK && $_FILES['main_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+                throw new Exception("Lỗi tải lên ảnh đại diện. File có thể vượt quá giới hạn của máy chủ (Mã lỗi: " . $_FILES['main_image']['error'] . ").");
+            }
+
             // If a new primary file was uploaded (single file input named `main_image`)
             if (!empty($_FILES['main_image']['tmp_name'])) {
                 error_log("Main image upload detected");
@@ -459,6 +478,15 @@ class TourController
                 }
             } else {
                 error_log("No main image upload detected");
+            }
+
+            // Kiểm tra lỗi upload ảnh thư viện từ server
+            if (isset($_FILES['gallery_images']['error']) && is_array($_FILES['gallery_images']['error'])) {
+                foreach ($_FILES['gallery_images']['error'] as $err) {
+                    if ($err !== UPLOAD_ERR_OK && $err !== UPLOAD_ERR_NO_FILE) {
+                         throw new Exception("Lỗi tải lên ảnh thư viện. File có thể vượt quá giới hạn của máy chủ (Mã lỗi: " . $err . ").");
+                    }
+                }
             }
 
             // Multiple gallery uploads with security checks
@@ -633,6 +661,16 @@ class TourController
         }
 
         try {
+            // Check for active bookings
+            $pdo = BaseModel::getPdo();
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM bookings WHERE tour_id = :id AND status NOT IN ('da_huy', 'cancelled')");
+            $stmt->execute(['id' => $id]);
+            $bookingCount = (int)$stmt->fetchColumn();
+
+            if ($bookingCount > 0) {
+                throw new Exception("Không thể xóa tour vì đang có {$bookingCount} người đặt.");
+            }
+
             // Soft delete thay vì hard delete
             $result = $this->model->softDelete($id);
             if ($result !== false) {
@@ -911,7 +949,12 @@ class TourController
             return;
         }
 
-        $ids = $_POST['tour_ids'] ?? [];
+        $rawIds = $_POST['tour_ids'] ?? '';
+        if (is_array($rawIds)) {
+            $ids = $rawIds;
+        } else {
+            $ids = array_filter(explode(',', $rawIds));
+        }
 
         if (empty($ids)) {
             $_SESSION['error'] = 'Vui lòng chọn ít nhất một tour để xóa';
@@ -920,12 +963,34 @@ class TourController
         }
 
         try {
-            $result = $this->model->bulkDelete($ids);
+            $pdo = BaseModel::getPdo();
+            $deletedCount = 0;
+            $skippedCount = 0;
 
-            if ($result) {
-                $_SESSION['success'] = "Xóa thành công " . count($ids) . " tour";
+            foreach ($ids as $id) {
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM bookings WHERE tour_id = :id AND status NOT IN ('da_huy', 'cancelled')");
+                $stmt->execute(['id' => $id]);
+                if ((int)$stmt->fetchColumn() > 0) {
+                    $skippedCount++;
+                    continue; // Skip tours with active bookings
+                }
+                
+                if ($this->model->softDelete($id)) {
+                    $deletedCount++;
+                }
+            }
+
+            if ($deletedCount > 0) {
+                $_SESSION['success'] = "Xóa thành công {$deletedCount} tour.";
+                if ($skippedCount > 0) {
+                    $_SESSION['success'] .= " Bỏ qua {$skippedCount} tour đang có người đặt.";
+                }
             } else {
-                throw new Exception('Failed to delete tours');
+                if ($skippedCount > 0) {
+                    throw new Exception("Không thể xóa {$skippedCount} tour đã chọn vì đang có người đặt.");
+                } else {
+                    throw new Exception('Không thể xóa tour.');
+                }
             }
         } catch (Exception $e) {
             error_log('Error bulk deleting tours: ' . $e->getMessage());

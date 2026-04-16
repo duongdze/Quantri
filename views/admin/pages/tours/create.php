@@ -129,24 +129,7 @@ $policies = $policies ?? [];
                                             <label for="category_id">Danh mục <span class="text-danger">*</span></label>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <select name="supplier_id" id="supplier_id" class="form-select">
-                                                <option value="">-- Không chọn --</option>
-                                                <?php if (!empty($suppliers)): ?>
-                                                    <?php foreach ($suppliers as $supplier): ?>
-                                                        <option value="<?= $supplier['id'] ?>">
-                                                            <?= htmlspecialchars($supplier['name']) ?> - <?= htmlspecialchars($supplier['type'] ?? '') ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                <?php endif; ?>
-                                            </select>
-                                            <label for="supplier_id">Nhà cung cấp (tùy chọn)</label>
-                                        </div>
-                                        <small class="text-muted d-block mt-1">
-                                            <i class="fas fa-info-circle me-1"></i>Chọn nhà cung cấp chính cho tour này
-                                        </small>
-                                    </div>
+
                                     <div class="col-md-6">
                                         <div class="form-floating">
                                             <input type="number" name="base_price" id="base_price" class="form-control" required min="0" step="1000" placeholder=" ">
@@ -275,15 +258,48 @@ $policies = $policies ?? [];
                     <!-- Step 5: Final Details -->
                     <div class="form-step" id="step-5">
                         <!-- Partners -->
+                        <!-- Main Supplier -->
+                        <div class="card mb-4 border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-building me-2"></i>
+                                    Nhà cung cấp chính
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        <label class="form-label fw-bold mb-2">Chọn Nhà cung cấp chịu trách nhiệm tour</label>
+                                        <select class="form-select form-select-lg" name="supplier_id" id="supplier_id">
+                                            <option value="">-- Không chọn nhà cung cấp --</option>
+                                            <?php if (!empty($suppliers)): ?>
+                                                <?php foreach ($suppliers as $supplier): ?>
+                                                    <option value="<?= $supplier['id'] ?>">
+                                                        <?= htmlspecialchars($supplier['name']) ?>
+                                                        (<?= strtoupper($supplier['type'] ?? '') ?>)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </select>
+                                        <small class="text-muted mt-2 d-inline-block">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Nhà cung cấp này sẽ được đánh dấu là đơn vị tổ chức chính.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Extra Partners -->
                         <div class="card mb-4">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-handshake text-secondary me-2"></i>
-                                    Đối tác dịch vụ
+                                    Đối tác dịch vụ phụ
                                 </h5>
                                 <div class="d-flex gap-2">
                                     <select class="form-select form-select-sm" id="supplier-select" style="width: 250px;">
-                                        <option value="">-- Chọn nhà cung cấp --</option>
+                                        <option value="">-- Chọn từ danh sách có sẵn --</option>
                                         <?php if (!empty($suppliers)): ?>
                                             <?php foreach ($suppliers as $supplier): ?>
                                                 <option value="<?= $supplier['id'] ?>"
@@ -302,45 +318,16 @@ $policies = $policies ?? [];
                                 </div>
                             </div>
                             <div class="card-body">
-                                <!-- Supplier Selection -->
-                                <div class="mb-4 p-3 bg-light rounded">
-                                    <div class="row g-3">
-                                        <div class="col-md-12">
-                                            <label class="form-label fw-bold">
-                                                <i class="fas fa-building me-2 text-primary"></i>
-                                                Chọn Nhà cung cấp
-                                            </label>
-                                            <select class="form-select" name="supplier_id" id="supplier_id">
-                                                <option value="">-- Không chọn nhà cung cấp --</option>
-                                                <?php if (!empty($suppliers)): ?>
-                                                    <?php foreach ($suppliers as $supplier): ?>
-                                                        <option value="<?= $supplier['id'] ?>">
-                                                            <?= htmlspecialchars($supplier['name']) ?>
-                                                            (<?= strtoupper($supplier['type'] ?? '') ?>)
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                <?php endif; ?>
-                                            </select>
-                                            <small class="text-muted">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                Chọn nhà cung cấp chính cho tour này (khách sạn, xe, nhà hàng...)
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <hr class="my-4">
-
                                 <!-- Partner Services List -->
                                 <div id="partners-list" class="partners-list">
                                     <!-- Partners will be added here dynamically -->
                                 </div>
                                 <div class="text-center text-muted py-4" id="partners-empty">
                                     <i class="fas fa-users fa-3x mb-3"></i>
-                                    <p>Chưa có đối tác nào</p>
+                                    <p>Chưa có đối tác phụ trợ nào</p>
                                     <button type="button" class="btn btn-outline-primary" onclick="addPartner()">
                                         <i class="fas fa-plus me-2"></i>
-                                        Thêm đối tác đầu tiên
+                                        Thêm đối tác thủ công
                                     </button>
                                 </div>
                             </div>
@@ -644,12 +631,39 @@ $policies = $policies ?? [];
         const currentStepElement = document.getElementById(`step-${currentStep}`);
         const requiredFields = currentStepElement.querySelectorAll('[required]');
 
+        let isValid = true;
         for (let field of requiredFields) {
-            if (!field.value.trim()) {
-                field.focus();
-                showToast('Vui lòng điền đầy đủ thông tin bắt buộc', 'error');
-                return false;
+            let value = field.value;
+            if (typeof value === 'string') value = value.trim();
+
+            if (!value) {
+                field.classList.add('is-invalid');
+                if (isValid) {
+                    field.focus();
+                }
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
             }
+        }
+        
+        // Remove valid state when user types
+        requiredFields.forEach(field => {
+            field.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    this.classList.remove('is-invalid');
+                }
+            }, { once: true });
+            field.addEventListener('change', function() {
+                if (this.value.trim()) {
+                    this.classList.remove('is-invalid');
+                }
+            }, { once: true });
+        });
+
+        if (!isValid) {
+            showToast('Vui lòng điền đầy đủ các thông tin bắt buộc', 'error');
+            return false;
         }
 
         return true;
@@ -873,14 +887,24 @@ $policies = $policies ?? [];
     }
 
     function handleMainImageUpload(file) {
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('mainImagePreview').querySelector('img').src = e.target.result;
-                document.getElementById('mainImageDropZone').style.display = 'none';
-                document.getElementById('mainImagePreview').style.display = 'block';
-            };
-            reader.readAsDataURL(file);
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Kích thước ảnh đại diện không được vượt quá 5MB', 'error');
+                removeMainImage();
+                return;
+            }
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('mainImagePreview').querySelector('img').src = e.target.result;
+                    document.getElementById('mainImageDropZone').style.display = 'none';
+                    document.getElementById('mainImagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                showToast('Chỉ chấp nhận file định dạng hình ảnh', 'error');
+                removeMainImage();
+            }
         }
     }
 
@@ -892,9 +916,15 @@ $policies = $policies ?? [];
 
     function handleGalleryUpload(files) {
         const previewGrid = document.getElementById('galleryPreview');
+        const dt = new DataTransfer();
 
         Array.from(files).forEach(file => {
+            if (file.size > 5 * 1024 * 1024) {
+                showToast(`File ${file.name} vượt quá 5MB và đã bị loại bỏ`, 'error');
+                return;
+            }
             if (file.type.startsWith('image/')) {
+                dt.items.add(file);
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const preview = document.createElement('div');
@@ -910,6 +940,8 @@ $policies = $policies ?? [];
                 reader.readAsDataURL(file);
             }
         });
+        
+        document.getElementById('gallery_images').files = dt.files;
     }
 
     // Auto-save

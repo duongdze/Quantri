@@ -1,5 +1,13 @@
 <?php
 
+$mode = $_GET['mode'] ?? 'client';
+
+if ($mode == 'admin') {
+    session_name('admin_session');
+} else {
+    session_name('client_session');
+}
+
 session_start();
 
 require_once './configs/env.php';
