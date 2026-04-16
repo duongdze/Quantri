@@ -32,16 +32,40 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
             <div class="row g-3">
                 <?php foreach ($availableTours as $tour): ?>
                     <?php
-                    $totalCustomers = $tour['total_customers'] ?? 0;
-                    $isEligible = ($totalCustomers >= 15 && $totalCustomers <= 30);
+                    $totalTourCustomers = $tour['total_customers'] ?? 0;
+                    $groupNumber = $tour['group_number'] ?? 1;
+                    
+                    // Lấy quy mô từ DB (ưu tiên lịch khởi hành)
+                    $minParticipants = 15; 
+                    $maxSeats = (int)($tour['max_seats'] ?? 30);
+                    
+                    // TÍNH TOÁN SỐ KHÁCH CHO TỪNG NHÓM (SLOT)
+                    if (!empty($tour['is_split'])) {
+                        // Nếu là nhóm cuối, số khách = phần dư, ngược lại = full suất
+                        $totalGroups = ceil($totalTourCustomers / $maxSeats);
+                        if ($groupNumber < $totalGroups) {
+                            $groupCustomers = $maxSeats;
+                        } else {
+                            $groupCustomers = $totalTourCustomers - ($maxSeats * ($totalGroups - 1));
+                        }
+                    } else {
+                        $groupCustomers = $totalTourCustomers;
+                    }
+                    
+                    $isUnder = ($groupCustomers < $minParticipants && empty($tour['is_split']));
+                    $isOver = ($groupCustomers > $maxSeats); // Trường hợp này hiếm khi xảy ra vì đã chia suất
+                    $isEligible = (!$isUnder && !$isOver);
 
                     // Xác định badge trạng thái
-                    if ($totalCustomers < 15) {
+                    if ($isUnder) {
                         $statusBadge = '<span class="badge bg-warning"><i class="fas fa-exclamation-triangle me-1"></i>Chưa đủ người</span>';
-                    } elseif ($totalCustomers > 30) {
-                        $statusBadge = '<span class="badge bg-danger"><i class="fas fa-users-slash me-1"></i>Quá đông</span>';
+                        $statusText = "Nhóm này chỉ có {$groupCustomers} khách (Yêu cầu {$minParticipants})";
+                    } elseif ($isOver) {
+                        $statusBadge = '<span class="badge bg-danger"><i class="fas fa-users-slash me-1"></i>Vượt quy mô</span>';
+                        $statusText = "Vượt tối đa {$maxSeats} khách";
                     } else {
                         $statusBadge = '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Đủ điều kiện</span>';
+                        $statusText = "Nhóm có {$groupCustomers} khách (Quy mô phù hợp)";
                     }
                     ?>
                     <div class="col-md-6 col-lg-4">
@@ -50,6 +74,9 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                 <h5 class="card-title text-primary" style="word-break: break-word; white-space: normal;">
                                     <i class="fas fa-route"></i>
                                     <?= htmlspecialchars($tour['tour_name'] ?? '') ?>
+                                    <?php if (!empty($tour['is_split'])): ?>
+                                        <span class="text-danger">(Nhóm <?= $tour['group_number'] ?>)</span>
+                                    <?php endif; ?>
                                 </h5>
 
                                 <p class="card-text text-muted small mb-3">
@@ -69,14 +96,15 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                     </small>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="mb-3 d-flex align-items-center gap-2">
                                     <?= $statusBadge ?>
+                                    <small class="text-muted italic"><?= $statusText ?></small>
                                 </div>
 
                                 <div class="mb-3 d-flex gap-2 flex-wrap">
-                                    <span class="badge bg-primary" data-bs-toggle="tooltip" title="Tổng số khách">
+                                    <span class="badge bg-primary" data-bs-toggle="tooltip" title="Số khách của nhóm này">
                                         <i class="fas fa-users me-1"></i>
-                                        <?= $totalCustomers ?> khách
+                                        <?= $groupCustomers ?> / <?= $totalTourCustomers ?> khách
                                     </span>
                                     <span class="badge bg-outline-primary text-primary border border-primary">
                                         <i class="fas fa-user me-1"></i>
@@ -160,7 +188,7 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                                 <i class="fas fa-user-tie me-1"></i>
                                                 Chọn HDV
                                             </label>
-                                            <?php $uniqueId = $tour['tour_id'] . '-' . str_replace('-', '', $tour['departure_date']); ?>
+                                            <?php $uniqueId = $tour['tour_id'] . '-' . str_replace('-', '', $tour['departure_date']) . '-' . $tour['group_number']; ?>
                                             <select class="form-select form-select-sm" id="guide-select-<?= $uniqueId ?>">
                                                 <option value="">-- Chọn HDV --</option>
                                                 <?php foreach ($guides as $guide): ?>
@@ -177,9 +205,10 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                         <button class="btn btn-primary w-100 admin-assign-guide-btn"
                                             data-unique-id="<?= $uniqueId ?>"
                                             data-tour-id="<?= $tour['tour_id'] ?>"
+                                            data-group-number="<?= $tour['group_number'] ?>"
                                             data-departure-id="<?= $tour['departure_id'] ?? '' ?>"
                                             data-departure-date="<?= $tour['departure_date'] ?>"
-                                            data-tour-name="<?= htmlspecialchars($tour['tour_name']) ?>">
+                                            data-tour-name="<?= htmlspecialchars($tour['tour_name']) ?><?php if (!empty($tour['is_split'])): ?> (Nhóm <?= $tour['group_number'] ?>)<?php endif; ?>">
                                             <i class="fas fa-user-check me-2"></i>
                                             Phân công HDV
                                         </button>
@@ -188,17 +217,18 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                         <button
                                             class="btn btn-primary w-100 claim-tour-btn"
                                             data-tour-id="<?= $tour['tour_id'] ?>"
+                                            data-group-number="<?= $tour['group_number'] ?>"
                                             data-departure-id="<?= $tour['departure_id'] ?? '' ?>"
                                             data-departure-date="<?= $tour['departure_date'] ?>"
-                                            data-tour-name="<?= htmlspecialchars($tour['tour_name']) ?>"
-                                            data-total-customers="<?= $totalCustomers ?>">
+                                            data-tour-name="<?= htmlspecialchars($tour['tour_name']) ?><?php if (!empty($tour['is_split'])): ?> (Nhóm <?= $tour['group_number'] ?>)<?php endif; ?>"
+                                            data-total-customers="<?= $groupCustomers ?>">
                                             <i class="fas fa-hand-paper me-2"></i>
                                             Nhận Tour
                                         </button>
                                     <?php else: ?>
                                         <button class="btn btn-secondary w-100" disabled>
                                             <i class="fas fa-ban me-2"></i>
-                                            Không đủ điều kiện
+                                            <?= $isOver ? 'Vượt quy mô' : 'Không đủ điều kiện' ?>
                                         </button>
                                     <?php endif; ?>
                                 </div>
@@ -239,7 +269,7 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                             headers: {
                                 'Content-Type': 'application/x-www-form-urlencoded',
                             },
-                            body: `tour_id=${tourId}&departure_id=${this.dataset.departureId}&departure_date=${this.dataset.departureDate}`
+                            body: `tour_id=${tourId}&departure_id=${this.dataset.departureId}&departure_date=${this.dataset.departureDate}&group_number=${this.dataset.groupNumber}`
                         })
                         .then(response => response.json())
                         .then(data => {
@@ -343,7 +373,7 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                             headers: {
                                 'Content-Type': 'application/x-www-form-urlencoded',
                             },
-                            body: `tour_id=${tourId}&guide_id=${guideId}&departure_id=${this.dataset.departureId || ''}&departure_date=${this.dataset.departureDate}`
+                            body: `tour_id=${tourId}&guide_id=${guideId}&departure_id=${this.dataset.departureId || ''}&departure_date=${this.dataset.departureDate}&group_number=${this.dataset.groupNumber}`
                         })
                         .then(response => response.json())
                         .then(data => {

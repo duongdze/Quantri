@@ -15,7 +15,9 @@ class TourAssignment extends BaseModel
         'driver_name',
         'start_date',
         'end_date',
-        'status'
+        'status',
+        'group_number',
+        'departure_id'
     ];
 
     /**
@@ -205,12 +207,15 @@ class TourAssignment extends BaseModel
      */
     public function getAvailableTours()
     {
+        // 1. Lấy danh sách gốc các tour có bookings và quy mô
         $sql = "SELECT 
             t.id as tour_id, 
             t.name as tour_name, 
             t.category_id, 
             t.description, 
             t.base_price as tour_base_price,
+            td.id as departure_id,
+            td.max_seats,
             b.departure_date,
             COUNT(DISTINCT b.id) as booking_count,
             COALESCE(SUM(bc_count.total), 0) as total_customers,
@@ -224,6 +229,8 @@ class TourAssignment extends BaseModel
         INNER JOIN bookings b ON t.id = b.tour_id 
             AND b.departure_date >= CURDATE()
             AND b.status NOT IN ('hoan_tat', 'da_huy')
+        LEFT JOIN tour_departures td ON t.id = td.tour_id 
+            AND b.departure_date = td.departure_date
         LEFT JOIN (
             SELECT 
                 booking_id, 
@@ -235,20 +242,34 @@ class TourAssignment extends BaseModel
             FROM booking_customers 
             GROUP BY booking_id
         ) bc_count ON b.id = bc_count.booking_id
-        WHERE NOT EXISTS (
-            SELECT 1 
-            FROM tour_assignments ta
-            WHERE ta.tour_id = t.id 
-            AND ta.start_date = b.departure_date
-            AND ta.status = 'active'
-        )
-        AND t.status = 'active'
-        GROUP BY t.id, t.name, t.category_id, t.description, t.base_price, b.departure_date
+        WHERE t.status = 'active'
+        GROUP BY t.id, t.name, t.category_id, t.description, t.base_price, b.departure_date, td.id, td.max_seats
         ORDER BY b.departure_date ASC, t.name ASC";
 
         $stmt = self::$pdo->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rawTours = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $results = [];
+        foreach ($rawTours as $tour) {
+            $maxSeats = (int)($tour['max_seats'] > 0 ? $tour['max_seats'] : 30);
+            $totalCustomers = (int)$tour['total_customers'];
+            
+            // Tính số lượng suất (slots) cần thiết
+            $numSlots = ceil($totalCustomers / $maxSeats);
+            
+            for ($i = 1; $i <= $numSlots; $i++) {
+                // Kiểm tra xem suất này (group_number) đã có HDV nhận chưa
+                if (!$this->tourHasGuide($tour['tour_id'], $tour['departure_date'], $i)) {
+                    $tourSlot = $tour;
+                    $tourSlot['group_number'] = $i;
+                    $tourSlot['is_split'] = ($numSlots > 1);
+                    $results[] = $tourSlot;
+                }
+            }
+        }
+        
+        return $results;
     }
 
     /**
@@ -282,20 +303,23 @@ class TourAssignment extends BaseModel
      * @param string|null $startDate - Ngày khởi hành cụ thể
      * @return bool
      */
-    public function tourHasGuide($tourId, $startDate = null)
+    public function tourHasGuide($tourId, $startDate = null, $groupNumber = 1)
     {
         if ($startDate) {
-            // Check theo cả tour_id và start_date
+            // Check theo cả tour_id, start_date và group_number
             $sql = "SELECT COUNT(*) as count 
                 FROM tour_assignments 
                 WHERE tour_id = :tour_id 
                 AND start_date = :start_date
+                AND (group_number = :group_number OR (group_number IS NULL AND :group_num_check = 1))
                 AND status = 'active'";
 
             $stmt = self::$pdo->prepare($sql);
             $stmt->execute([
                 'tour_id' => $tourId,
-                'start_date' => $startDate
+                'start_date' => $startDate,
+                'group_number' => $groupNumber,
+                'group_num_check' => $groupNumber
             ]);
         } else {
             // Check chỉ theo tour_id (backward compatibility)

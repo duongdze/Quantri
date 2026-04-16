@@ -54,6 +54,7 @@ class AvailableToursController
         $tourId = $_POST['tour_id'] ?? null;
         $departureId = $_POST['departure_id'] ?? null;
         $departureDate = $_POST['departure_date'] ?? null;
+        $groupNumber = $_POST['group_number'] ?? 1;
 
         if (!$guideId || !$tourId) {
             echo json_encode(['success' => false, 'message' => 'Thiếu thông tin HDV hoặc Tour']);
@@ -61,9 +62,9 @@ class AvailableToursController
         }
 
         try {
-            // Kiểm tra tour đã có HDV chưa (cho ngày cụ thể)
-            if ($this->tourAssignmentModel->tourHasGuide($tourId, $departureDate)) {
-                echo json_encode(['success' => false, 'message' => 'Tour này đã có HDV phụ trách cho ngày ' . date('d/m/Y', strtotime($departureDate))]);
+            // Kiểm tra suất tour này đã có HDV chưa
+            if ($this->tourAssignmentModel->tourHasGuide($tourId, $departureDate, $groupNumber)) {
+                echo json_encode(['success' => false, 'message' => 'Suất dẫn tour này đã có HDV phụ trách']);
                 exit;
             }
 
@@ -90,6 +91,7 @@ class AvailableToursController
                 'guide_id' => $guideId,
                 'tour_id' => $tourId,
                 'start_date' => $departureDate,
+                'group_number' => $groupNumber,
                 'status' => 'active'
             ];
 
@@ -144,6 +146,7 @@ class AvailableToursController
         $tourId = $_POST['tour_id'] ?? null;
         $departureId = $_POST['departure_id'] ?? null;
         $departureDate = $_POST['departure_date'] ?? null;
+        $groupNumber = $_POST['group_number'] ?? 1;
 
         if (!$tourId) {
             echo json_encode(['success' => false, 'message' => 'Thiếu thông tin tour']);
@@ -172,17 +175,45 @@ class AvailableToursController
             }
 
             // 2. Các kiểm tra cơ bản
-            if ($this->tourAssignmentModel->tourHasGuide($tourId, $startDate)) {
-                echo json_encode(['success' => false, 'message' => 'Tour này đã có HDV khác nhận vào ngày ' . date('d/m/Y', strtotime($startDate))]);
+            if ($this->tourAssignmentModel->tourHasGuide($tourId, $startDate, $groupNumber)) {
+                echo json_encode(['success' => false, 'message' => 'Suất dẫn tour này đã có HDV khác nhận.']);
+                exit;
+            }
+            
+            // Một HDV có thể nhận nhiều nhóm của cùng 1 tour nếu bạn cho phép, 
+            // nhưng ở đây ta vẫn kiểm tra xem họ đã nhận đúng nhóm này chưa.
+            $sqlCheck = "SELECT COUNT(*) FROM tour_assignments 
+                         WHERE guide_id = :gid AND tour_id = :tid 
+                         AND start_date = :sd AND group_number = :gn AND status = 'active'";
+            $stmtCheck = $this->tourAssignmentModel->getPDO()->prepare($sqlCheck);
+            $stmtCheck->execute(['gid' => $guideId, 'tid' => $tourId, 'sd' => $startDate, 'gn' => $groupNumber]);
+            if ($stmtCheck->fetchColumn() > 0) {
+                echo json_encode(['success' => false, 'message' => 'Bạn đã nhận nhóm này rồi']);
                 exit;
             }
 
-            if ($this->tourAssignmentModel->isGuideAssignedToTour($guideId, $tourId)) {
-                echo json_encode(['success' => false, 'message' => 'Bạn đã nhận tour này rồi']);
-                exit;
+            // 3. Lấy thông tin quy mô tour để kiểm tra
+            require_once 'models/Tour.php';
+            $tourModelObj = new Tour();
+            $tourInfo = $tourModelObj->findById($tourId);
+            
+            // Ưu tiên lấy max_seats từ tour_departures (lịch cụ thể)
+            $departureModel = new TourDeparture();
+            $departureInfo = null;
+            if ($departureId) {
+                $departureInfo = $departureModel->findById($departureId);
+            } else {
+                // Thử tìm theo tour_id và ngày
+                $departureInfo = $departureModel->find('*', 'tour_id = :tid AND departure_date = :dd', [
+                    'tid' => $tourId,
+                    'dd' => $startDate
+                ]);
             }
 
-            // 3. Tính tổng số khách trong ngày khởi hành này
+            $minParticipants = 15; // Mặc định do DB thiếu cột min_participants
+            $maxSeats = (int)($departureInfo['max_seats'] ?? 30); // Ưu tiên max_seats từ lịch, mặc định 30
+
+            // Tính tổng khách
             $bookingModel = new Booking();
             $sql = "SELECT 
                     COALESCE(SUM(bc_count.total), 0) as total_customers
@@ -205,15 +236,25 @@ class AvailableToursController
 
             $totalCustomers = $tourStats['total_customers'] ?? 0;
 
-            // Validate 15-30 người
-            if ($totalCustomers < 15) {
-                echo json_encode(['success' => false, 'message' => 'Tour chưa đủ 15 người. Hiện tại: ' . $totalCustomers . ' người']);
+            // Validate theo quy mô thực tế
+            if ($totalCustomers < $minParticipants) {
+                echo json_encode(['success' => false, 'message' => "Tour chưa đủ số người tối thiểu ({$minParticipants} người). Hiện tại: {$totalCustomers} người"]);
                 exit;
             }
 
-            if ($totalCustomers > 30) {
-                echo json_encode(['success' => false, 'message' => 'Tour quá đông (>30 người). Cần chia nhóm. Hiện tại: ' . $totalCustomers . ' người']);
-                exit;
+            if ($totalCustomers > $maxSeats) {
+                // Nếu vượt quá max_seats, kiểm tra xem suất groupNumber có hợp lệ không
+                $requiredGroups = ceil($totalCustomers / $maxSeats);
+                if ($groupNumber > $requiredGroups) {
+                    echo json_encode(['success' => false, 'message' => 'Tour đã được gộp lại do Admin tăng số chỗ. Vui lòng làm mới trang và nhận lại suất Nhóm 1.']);
+                    exit;
+                }
+            } else {
+                // Nếu không vượt quá, mà HDV lại nhận group > 1 thì báo gộp
+                if ($groupNumber > 1) {
+                    echo json_encode(['success' => false, 'message' => 'Tour này đã được gộp lại thành 1 nhóm duy nhất.']);
+                    exit;
+                }
             }
 
             // Gán tour cho HDV
@@ -221,6 +262,7 @@ class AvailableToursController
                 'guide_id' => $guideId,
                 'tour_id' => $tourId,
                 'start_date' => $startDate,
+                'group_number' => $groupNumber,
                 'status' => 'active'
             ];
 
