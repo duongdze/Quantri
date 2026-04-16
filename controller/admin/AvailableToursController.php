@@ -151,23 +151,41 @@ class AvailableToursController
         }
 
         try {
-            // Kiểm tra tour đã có HDV chưa
-            if ($this->tourAssignmentModel->tourHasGuide($tourId)) {
-                echo json_encode(['success' => false, 'message' => 'Tour này đã có HDV khác nhận rồi']);
+            // 1. Xác định ngày khởi hành trước
+            if (!$departureDate) {
+                if ($departureId) {
+                    $departureModel = new TourDeparture();
+                    $departure = $departureModel->findById($departureId);
+                    $startDate = $departure['departure_date'] ?? date('Y-m-d');
+                } else {
+                    $sql = "SELECT MIN(departure_date) as start_date 
+                        FROM bookings 
+                        WHERE tour_id = :tour_id 
+                        AND status NOT IN ('hoan_tat', 'da_huy')";
+                    $stmt = $this->tourAssignmentModel->getPDO()->prepare($sql);
+                    $stmt->execute(['tour_id' => $tourId]);
+                    $dateInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $startDate = $dateInfo['start_date'] ?? date('Y-m-d');
+                }
+            } else {
+                $startDate = $departureDate;
+            }
+
+            // 2. Các kiểm tra cơ bản
+            if ($this->tourAssignmentModel->tourHasGuide($tourId, $startDate)) {
+                echo json_encode(['success' => false, 'message' => 'Tour này đã có HDV khác nhận vào ngày ' . date('d/m/Y', strtotime($startDate))]);
                 exit;
             }
 
-            // Kiểm tra HDV đã nhận tour này chưa
             if ($this->tourAssignmentModel->isGuideAssignedToTour($guideId, $tourId)) {
                 echo json_encode(['success' => false, 'message' => 'Bạn đã nhận tour này rồi']);
                 exit;
             }
 
-            // Tính tổng số khách của tour
+            // 3. Tính tổng số khách trong ngày khởi hành này
             $bookingModel = new Booking();
             $sql = "SELECT 
-                    COUNT(DISTINCT b.id) as booking_count,
-                    COUNT(DISTINCT b.id) + COALESCE(SUM(bc_count.total), 0) as total_customers
+                    COALESCE(SUM(bc_count.total), 0) as total_customers
                 FROM bookings b
                 LEFT JOIN (
                     SELECT booking_id, COUNT(*) as total 
@@ -175,12 +193,15 @@ class AvailableToursController
                     GROUP BY booking_id
                 ) bc_count ON b.id = bc_count.booking_id
                 WHERE b.tour_id = :tour_id
+                AND b.departure_date = :departure_date
                 AND b.status NOT IN ('hoan_tat', 'da_huy')";
 
-            $pdo = $bookingModel->getPDO();
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['tour_id' => $tourId]);
-            $tourStats = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmtCount = $bookingModel->getPDO()->prepare($sql);
+            $stmtCount->execute([
+                'tour_id' => $tourId,
+                'departure_date' => $startDate
+            ]);
+            $tourStats = $stmtCount->fetch(PDO::FETCH_ASSOC);
 
             $totalCustomers = $tourStats['total_customers'] ?? 0;
 
@@ -193,29 +214,6 @@ class AvailableToursController
             if ($totalCustomers > 30) {
                 echo json_encode(['success' => false, 'message' => 'Tour quá đông (>30 người). Cần chia nhóm. Hiện tại: ' . $totalCustomers . ' người']);
                 exit;
-            }
-
-            // Lấy ngày khởi hành
-            if (!$departureDate) {
-                if ($departureId) {
-                    // Lấy từ tour_departures
-                    $departureModel = new TourDeparture();
-                    $departure = $departureModel->findById($departureId);
-                    $startDate = $departure['departure_date'] ?? date('Y-m-d');
-                } else {
-                    // Lấy ngày khởi hành sớm nhất từ bookings
-                    $sql = "SELECT MIN(booking_date) as start_date 
-                        FROM bookings 
-                        WHERE tour_id = :tour_id 
-                        AND status NOT IN ('hoan_tat', 'da_huy')";
-
-                    $stmt = $pdo->prepare($sql);
-                    $stmt->execute(['tour_id' => $tourId]);
-                    $dateInfo = $stmt->fetch(PDO::FETCH_ASSOC);
-                    $startDate = $dateInfo['start_date'] ?? date('Y-m-d');
-                }
-            } else {
-                $startDate = $departureDate;
             }
 
             // Gán tour cho HDV

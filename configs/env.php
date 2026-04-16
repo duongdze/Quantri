@@ -1,4 +1,4 @@
-    <?php
+<?php
 
 define('BASE_URL', 'http://localhost/Quantri/');
 define('BASE_URL_ADMIN', 'http://localhost/Quantri/?mode=admin');

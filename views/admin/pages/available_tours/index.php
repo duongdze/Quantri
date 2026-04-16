@@ -74,25 +74,38 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                 </div>
 
                                 <div class="mb-3 d-flex gap-2 flex-wrap">
-                                    <span class="badge bg-primary">
-                                        <i class="fas fa-users"></i>
-                                        <?= $totalCustomers ?> người
+                                    <span class="badge bg-primary" data-bs-toggle="tooltip" title="Tổng số khách">
+                                        <i class="fas fa-users me-1"></i>
+                                        <?= $totalCustomers ?> khách
                                     </span>
-                                    <span class="badge bg-info">
-                                        <i class="fas fa-calendar-check"></i>
-                                        <?= $tour['booking_count'] ?> booking
+                                    <span class="badge bg-outline-primary text-primary border border-primary">
+                                        <i class="fas fa-user me-1"></i>
+                                        <?= $tour['total_adults'] ?> Lớn
                                     </span>
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-money-bill-wave"></i>
-                                        <?= number_format($tour['total_booking_price'] ?? 0, 0, ',', '.') ?> ₫
-                                    </span>
-                                    <?php if ($tour['duration'] ?? null): ?>
-                                        <span class="badge bg-secondary">
-                                            <i class="fas fa-clock"></i>
-                                            <?= $tour['duration'] ?> ngày
+                                    <?php if ($tour['total_children'] > 0): ?>
+                                        <span class="badge bg-outline-info text-info border border-info">
+                                            <i class="fas fa-child me-1"></i>
+                                            <?= $tour['total_children'] ?> Trẻ em
                                         </span>
                                     <?php endif; ?>
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-money-bill-wave me-1"></i>
+                                        <?= number_format($tour['total_booking_price'] ?? 0, 0, ',', '.') ?> ₫
+                                    </span>
                                 </div>
+
+                                <?php if (!empty($tour['special_requests'])): ?>
+                                    <div class="mb-3">
+                                        <div class="p-2 bg-light rounded border-start border-4 border-warning">
+                                            <small class="text-warning fw-bold d-block mb-1">
+                                                <i class="fas fa-exclamation-circle"></i> Yêu cầu đặc biệt:
+                                            </small>
+                                            <small class="text-muted italic">
+                                                <?= htmlspecialchars($tour['special_requests']) ?>
+                                            </small>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
 
                                 <!-- Version Breakdown -->
                                 <?php if (!empty($tour['version_breakdown']) && count($tour['version_breakdown']) > 0): ?>
@@ -226,7 +239,7 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                             headers: {
                                 'Content-Type': 'application/x-www-form-urlencoded',
                             },
-                            body: `tour_id=${tourId}&departure_id=${this.dataset.departureId}`
+                            body: `tour_id=${tourId}&departure_id=${this.dataset.departureId}&departure_date=${this.dataset.departureDate}`
                         })
                         .then(response => response.json())
                         .then(data => {

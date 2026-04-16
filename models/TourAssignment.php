@@ -200,7 +200,7 @@ class TourAssignment extends BaseModel
     }
 
     /**
-     * Lấy danh sách tour chưa có HDV - theo ngày booking (gộp các booking cùng ngày)
+     * Lấy danh sách tour chưa có HDV - theo ngày khởi hành
      * @return array
      */
     public function getAvailableTours()
@@ -211,17 +211,27 @@ class TourAssignment extends BaseModel
             t.category_id, 
             t.description, 
             t.base_price as tour_base_price,
-            DATE(b.booking_date) as departure_date,
+            b.departure_date,
             COUNT(DISTINCT b.id) as booking_count,
-            COALESCE(SUM(CASE WHEN bc_count.total IS NOT NULL THEN bc_count.total ELSE 0 END), 0) + COUNT(DISTINCT b.id) as total_customers,
+            COALESCE(SUM(bc_count.total), 0) as total_customers,
+            COALESCE(SUM(bc_count.adult_count), 0) as total_adults,
+            COALESCE(SUM(bc_count.child_count), 0) as total_children,
+            COALESCE(SUM(bc_count.infant_count), 0) as total_infants,
+            COALESCE(GROUP_CONCAT(DISTINCT bc_count.special_requests_summary SEPARATOR '; '), '') as special_requests,
             COALESCE(SUM(b.total_price), 0) as total_booking_price,
             GROUP_CONCAT(DISTINCT b.id ORDER BY b.id) as booking_ids
         FROM tours t
         INNER JOIN bookings b ON t.id = b.tour_id 
-            AND DATE(b.booking_date) >= CURDATE()
+            AND b.departure_date >= CURDATE()
             AND b.status NOT IN ('hoan_tat', 'da_huy')
         LEFT JOIN (
-            SELECT booking_id, COUNT(*) as total 
+            SELECT 
+                booking_id, 
+                COUNT(*) as total,
+                SUM(CASE WHEN passenger_type = 'adult' THEN 1 ELSE 0 END) as adult_count,
+                SUM(CASE WHEN passenger_type = 'child' THEN 1 ELSE 0 END) as child_count,
+                SUM(CASE WHEN passenger_type = 'infant' THEN 1 ELSE 0 END) as infant_count,
+                GROUP_CONCAT(DISTINCT special_request SEPARATOR ', ') as special_requests_summary
             FROM booking_customers 
             GROUP BY booking_id
         ) bc_count ON b.id = bc_count.booking_id
@@ -229,12 +239,12 @@ class TourAssignment extends BaseModel
             SELECT 1 
             FROM tour_assignments ta
             WHERE ta.tour_id = t.id 
-            AND ta.start_date = DATE(b.booking_date)
+            AND ta.start_date = b.departure_date
             AND ta.status = 'active'
         )
         AND t.status = 'active'
-        GROUP BY t.id, t.name, t.category_id, t.description, t.base_price, DATE(b.booking_date)
-        ORDER BY DATE(b.booking_date) ASC, t.name ASC";
+        GROUP BY t.id, t.name, t.category_id, t.description, t.base_price, b.departure_date
+        ORDER BY b.departure_date ASC, t.name ASC";
 
         $stmt = self::$pdo->prepare($sql);
         $stmt->execute();

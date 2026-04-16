@@ -274,6 +274,23 @@
                     border-color: #dee2e6;
                     background-color: #f8f9fa;
                 }
+                .day-cell.sold-out {
+                    background-color: #f1f3f5;
+                    border: 1px solid #dee2e6;
+                    opacity: 0.8;
+                    cursor: not-allowed;
+                    color: #adb5bd;
+                    position: relative;
+                }
+                .day-cell.sold-out .day-price {
+                    color: #ef4444;
+                    font-weight: 700;
+                    font-size: 0.55rem;
+                }
+                .day-cell.sold-out:hover {
+                    background-color: #f1f3f5;
+                    border-color: #dee2e6;
+                }
             </style>
 
             <script>
@@ -283,7 +300,7 @@
                         'id' => $d['id'],
                         'date' => $d['departure_date'],
                         'price' => $d['price_adult'] > 0 ? $d['price_adult'] : $tour['base_price'],
-                        'seats_available' => $d['max_seats'] - ($d['booked_seats'] ?? 0)
+                        'seats_available' => (in_array($d['status'], ['closed', 'full'])) ? 0 : ($d['max_seats'] - ($d['booked_seats'] ?? 0))
                     ];
                 }, $departures)) ?>;
                 
@@ -389,6 +406,13 @@
                             if (depDate < minDate) {
                                 div.classList.add('has-departure', 'disabled-too-soon');
                                 div.title = "Đã quá hạn đăng ký (Yêu cầu đặt trước 7 ngày)";
+                            } else if (departure.seats_available <= 0) {
+                                div.classList.add('has-departure', 'sold-out');
+                                const soldOutDiv = document.createElement('div');
+                                soldOutDiv.className = 'day-price';
+                                soldOutDiv.innerText = 'Hết chỗ';
+                                div.appendChild(soldOutDiv);
+                                div.title = "Tour này đã hết chỗ";
                             } else {
                                 div.classList.add('has-departure');
                                 div.onclick = function() {
@@ -423,6 +447,11 @@
                     const sidebarDateText = document.getElementById('sidebarDateText');
                     sidebarDateText.innerText = `Ngày: ${formattedDate} - Giá: ${fullPrice}`;
                     sidebarSelectedDate.classList.remove('d-none');
+                }
+
+                function checkDepartureAvailability(departureId) {
+                    const dep = departures.find(d => d.id == departureId);
+                    return dep && dep.seats_available > 0;
                 }
 
                 function formatCompactPrice(price) {
@@ -704,6 +733,12 @@
             
             const tourId = <?= $tour['id'] ?>;
             const departureId = departureSelect.value;
+
+            if (!checkDepartureAvailability(departureId)) {
+                alert('Rất tiếc, ngày khởi hành này đã hết chỗ! Vui lòng chọn ngày khác.');
+                return;
+            }
+
             window.location.href = `<?= BASE_URL ?>?action=booking-create&tour_id=${tourId}&departure_id=${departureId}`;
         } catch (e) {
             console.error(e);

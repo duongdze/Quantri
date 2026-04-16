@@ -173,19 +173,27 @@ class Booking extends BaseModel
      * @param int $tourId
      * @return array
      */
-    public function getByTourId($tourId)
+    public function getByTourId($tourId, $departureDate = null)
     {
         $sql = "SELECT 
                     B.*,
                     U.full_name AS customer_name
                 FROM bookings AS B
                 LEFT JOIN users AS U ON B.customer_id = U.user_id
-                WHERE B.tour_id = :tour_id
-                AND B.status IN ('cho_xac_nhan', 'da_coc')
-                ORDER BY B.id ASC";
+                WHERE B.tour_id = :tour_id";
+        
+        $params = ['tour_id' => $tourId];
+        
+        if ($departureDate) {
+            $sql .= " AND B.departure_date = :departure_date";
+            $params['departure_date'] = $departureDate;
+        }
+        
+        $sql .= " AND B.status IN ('pending', 'cho_xac_nhan', 'da_coc', 'hoan_tat')
+                  ORDER BY B.id ASC";
 
         $stmt = self::$pdo->prepare($sql);
-        $stmt->execute(['tour_id' => $tourId]);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -294,7 +302,7 @@ class Booking extends BaseModel
                     T.name AS tour_name, 
                     U.full_name AS customer_name
                 FROM {$this->table} AS B 
-                INNER JOIN tour_assignments AS TA ON B.tour_id = TA.tour_id
+                INNER JOIN tour_assignments AS TA ON B.tour_id = TA.tour_id AND B.departure_date = TA.start_date
                 LEFT JOIN tours AS T ON B.tour_id = T.id
                 LEFT JOIN users AS U ON B.customer_id = U.user_id
                 WHERE TA.guide_id = :guide_id

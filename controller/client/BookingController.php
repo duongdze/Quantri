@@ -34,6 +34,14 @@ class ClientBookingController
             exit;
         }
 
+        // Check if departure is available
+        $isFull = in_array($departure['status'], ['closed', 'full']) || ($departure['max_seats'] - $departure['booked_seats'] <= 0);
+        if ($isFull) {
+            $_SESSION['error'] = 'Rất tiếc, ngày khởi hành này đã hết chỗ hoặc ngừng nhận khách!';
+            header('Location: ' . BASE_URL . '?action=tour-detail&id=' . $tourId);
+            exit;
+        }
+
         // Calculate duration from itineraries if column is missing
         if (!isset($tour['duration_days'])) {
             $itineraries = $this->tourModel->getRelatedData('itineraries', $tourId);
@@ -72,9 +80,12 @@ class ClientBookingController
 
         // Check availability
         $departure = $this->departureModel->findById($departureId);
-        if ($departure['max_seats'] - $departure['booked_seats'] < $totalSeats) {
-             $_SESSION['error'] = 'Số chỗ còn lại không đủ!';
-             header("Location: " . BASE_URL . "?action=booking-create&tour_id=$tourId&departure_id=$departureId");
+        $remainingSeats = $departure['max_seats'] - $departure['booked_seats'];
+        $isStatusUnavailable = in_array($departure['status'], ['closed', 'full']);
+        
+        if ($isStatusUnavailable || $remainingSeats < $totalSeats) {
+             $_SESSION['error'] = 'Rất tiếc, tour đã hết chỗ hoặc không đủ số lượng ghế bạn yêu cầu!';
+             header("Location: " . BASE_URL . "?action=tour-detail&id=$tourId");
              exit;
         }
         

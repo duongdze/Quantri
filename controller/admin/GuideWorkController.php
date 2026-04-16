@@ -50,14 +50,29 @@ class GuideWorkController
             die("Thiếu tour_id hoặc guide_id");
         }
 
+        // Security check
+        $currentUser = $_SESSION['user'] ?? null;
+        $role = $currentUser['role'] ?? null;
+        $userId = $currentUser['user_id'] ?? null;
+
+        if ($role === 'guide') {
+            $guide = GuideWorkModel::getGuideByUserId($userId);
+            if (!$guide || $guide['id'] != $guideId) {
+                $_SESSION['error'] = 'Bạn không có quyền xem thông tin tour này';
+                header('Location: ' . BASE_URL_ADMIN . '&action=guide/schedule');
+                exit;
+            }
+        }
+
         // Lấy thông tin tour
         $tour = GuideWorkModel::getTourById($tourId);
         $assignment = GuideWorkModel::getAssignment($tourId, $guideId);
         $itineraries = GuideWorkModel::getItinerariesByTourId($tourId) ?: [];
 
-        // Lấy bookings của tour này
+        // Lấy bookings của tour này vào đúng ngày khởi hành
         $bookingModel = new Booking();
-        $bookings = $bookingModel->getByTourId($tourId);
+        $startDate = $assignment['start_date'] ?? null;
+        $bookings = $bookingModel->getByTourId($tourId, $startDate);
 
         // Lấy danh sách khách từ tất cả bookings
         $customerModel = new BookingCustomer();

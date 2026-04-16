@@ -131,12 +131,22 @@ $canEdit = ($userRole === 'admin');
                     </div>
                 </div>
 
-                <div class="stat-card stat-success">
+        <div class="stat-card stat-success">
                     <div class="stat-icon-wrapper">
                         <i class="fas fa-users"></i>
                     </div>
+                    <?php 
+                    $mainCustomerInCompanions = false;
+                    foreach ($companions as $companion) {
+                        if ($companion['full_name'] === $booking['customer_name']) {
+                            $mainCustomerInCompanions = true;
+                            break;
+                        }
+                    }
+                    $totalActualGuests = count($companions) + ($mainCustomerInCompanions ? 0 : 1);
+                    ?>
                     <div class="stat-content">
-                        <div class="stat-value"><?= count($companions) + 1 ?></div>
+                        <div class="stat-value"><?= $totalActualGuests ?></div>
                         <div class="stat-label">Số khách</div>
                     </div>
                 </div>
@@ -211,7 +221,7 @@ $canEdit = ($userRole === 'admin');
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">
                             <i class="fas fa-users text-success me-2"></i>
-                            Danh sách khách (<?= count($companions) + 1 ?>)
+                            Danh sách khách (<?= $totalActualGuests ?>)
                         </h5>
                         <?php if ($canEdit): ?>
                             <button type="button" class="btn btn-sm btn-primary" id="add-companion-btn" data-booking-id="<?= $booking['id'] ?>">
