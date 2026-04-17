@@ -33,6 +33,10 @@ $isGuide = $userRole === 'guide';
                 </div>
                 <?php if ($isAdmin): ?>
                     <div class="header-right">
+                        <a href="<?= BASE_URL_ADMIN . '&action=bookings/export-excel' ?>" class="btn btn-modern btn-success btn-lg">
+                            <i class="fas fa-file-excel me-2"></i>
+                            Xuất báo cáo Excel
+                        </a>
                         <button class="btn btn-modern btn-primary btn-lg" onclick="window.location.href='<?= BASE_URL_ADMIN . '&action=bookings/create' ?>'">
                             <i class="fas fa-plus-circle me-2"></i>
                             Tạo Booking Mới

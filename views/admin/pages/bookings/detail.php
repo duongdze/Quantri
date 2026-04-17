@@ -61,6 +61,10 @@ $canEdit = ($userRole === 'admin');
                     </div>
                 </div>
                 <div class="header-right">
+                    <a href="<?= BASE_URL_ADMIN ?>&action=bookings/export-pdf&id=<?= $booking['id'] ?>" class="btn btn-modern btn-danger" target="_blank">
+                        <i class="fas fa-file-pdf me-2"></i>
+                        Tải hóa đơn PDF
+                    </a>
                     <?php if ($canEdit): ?>
                         <a href="<?= BASE_URL_ADMIN ?>&action=bookings/edit&id=<?= $booking['id'] ?>" class="btn btn-modern btn-secondary">
                             <i class="fas fa-edit me-2"></i>

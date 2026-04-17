@@ -111,6 +111,7 @@ match ($action) {
     'bookings/bulk-checkin'                 => (new BookingController)->bulkCheckin(), // AJAX endpoint
     'bookings/print-group-list'             => (new BookingController)->printGroupList(),
     'bookings/export-pdf'                   => (new BookingController)->exportInvoicePdf(),
+    'bookings/export-excel'                 => (new BookingController)->exportExcel(),
 
 
 

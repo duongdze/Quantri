@@ -1057,4 +1057,57 @@ class BookingController
         require_once PATH_ROOT . 'services/PdfService.php';
         PdfService::generateBookingInvoice($booking, $passengers);
     }
+    /**
+     * Xuất danh sách booking ra file Excel (BK_27)
+     */
+    public function exportExcel()
+    {
+        check_role(['admin']);
+
+        // Lấy tất cả bookings
+        $bookings = $this->model->getAllByRole('admin');
+
+        // Tên file
+        $filename = 'danh-sach-booking-' . date('Y-m-d') . '.xls';
+
+        // Headers cho trình duyệt
+        header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        // BOM UTF-8 để tiếng Việt không lỗi
+        echo "\xEF\xBB\xBF";
+
+        // Tiêu đề báo cáo
+        echo "BÁO CÁO DANH SÁCH BOOKING\t\t\t\t\t\t\n";
+        echo "Ngày xuất:\t" . date('d/m/Y H:i') . "\t\t\t\t\t\n";
+        echo "Tổng số booking:\t" . count($bookings) . "\t\t\t\t\t\n";
+        echo "\n";
+
+        // Header bảng (sử dụng phím tab \t)
+        echo "STT\tMã BK\tKhách hàng\tTour\tNgày đặt\tTổng tiền\tTrạng thái\n";
+
+        // Dữ liệu
+        $stt = 1;
+        $statusMap = [
+            'cho_xac_nhan' => 'Chờ xác nhận',
+            'da_coc' => 'Đã cọc',
+            'hoan_tat' => 'Hoàn tất',
+            'da_huy' => 'Đã hủy'
+        ];
+
+        foreach ($bookings as $booking) {
+            $code = 'BK' . str_pad($booking['id'], 6, '0', STR_PAD_LEFT);
+            $customerName = $booking['customer_name'] ?? 'N/A';
+            $tourName = $booking['tour_name'] ?? 'N/A';
+            $bookingDate = date('d/m/Y', strtotime($booking['booking_date']));
+            $totalPrice = number_format($booking['final_price'] ?? $booking['total_price'] ?? 0, 0, ',', '.') . ' đ';
+            $status = $statusMap[$booking['status']] ?? $booking['status'];
+
+            echo "{$stt}\t{$code}\t{$customerName}\t{$tourName}\t{$bookingDate}\t{$totalPrice}\t{$status}\n";
+            $stt++;
+        }
+
+        exit;
+    }
 }

@@ -68,10 +68,40 @@ class ClientBookingController
         $departureId = $_POST['departure_id'];
         
         // Basic Validation
-        if (empty($_POST['full_name']) || empty($_POST['phone']) || empty($_POST['email'])) {
-             $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
-             header("Location: " . BASE_URL . "?action=booking-create&tour_id=$tourId&departure_id=$departureId");
-             exit;
+        $fullName = $_POST['full_name'] ?? '';
+        $phone = $_POST['phone'] ?? '';
+        $email = $_POST['email'] ?? '';
+
+        // BK_02: Bỏ trống Họ tên
+        if (empty($fullName)) {
+            $_SESSION['old_input'] = $_POST;
+            $_SESSION['error'] = 'Họ tên không được để trống';
+            header("Location: " . BASE_URL . "?action=booking-create&tour_id=$tourId&departure_id=$departureId");
+            exit;
+        }
+
+        // BK_03: SĐT sai định dạng (chứa chữ cái)
+        if (!preg_match('/^[0-9]+$/', $phone)) {
+            $_SESSION['old_input'] = $_POST;
+            $_SESSION['error'] = 'Số điện thoại không hợp lệ, vui lòng chỉ nhập ký số';
+            header("Location: " . BASE_URL . "?action=booking-create&tour_id=$tourId&departure_id=$departureId");
+            exit;
+        }
+
+        // BK_04: SĐT không đủ chữ số (10-11 số)
+        if (strlen($phone) < 10 || strlen($phone) > 11) {
+            $_SESSION['old_input'] = $_POST;
+            $_SESSION['error'] = 'Số điện thoại phải bao gồm từ 10 đến 11 chữ số';
+            header("Location: " . BASE_URL . "?action=booking-create&tour_id=$tourId&departure_id=$departureId");
+            exit;
+        }
+
+        // BK_05: Email sai định dạng
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['old_input'] = $_POST;
+            $_SESSION['error'] = 'Địa chỉ Email không đúng định dạng chuẩn';
+            header("Location: " . BASE_URL . "?action=booking-create&tour_id=$tourId&departure_id=$departureId");
+            exit;
         }
 
         $adults = max(1, (int)$_POST['adults']);
@@ -84,8 +114,9 @@ class ClientBookingController
         $isStatusUnavailable = in_array($departure['status'], ['closed', 'full']);
         
         if ($isStatusUnavailable || $remainingSeats < $totalSeats) {
+             $_SESSION['old_input'] = $_POST;
              $_SESSION['error'] = 'Rất tiếc, tour đã hết chỗ hoặc không đủ số lượng ghế bạn yêu cầu!';
-             header("Location: " . BASE_URL . "?action=tour-detail&id=$tourId");
+             header("Location: " . BASE_URL . "?action=booking-create&tour_id=$tourId&departure_id=$departureId");
              exit;
         }
         

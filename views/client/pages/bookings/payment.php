@@ -79,6 +79,32 @@
     .copy-btn:hover {
         text-decoration: underline;
     }
+    
+    /* Hiệu ứng cho ô chọn thanh toán */
+    .payment-option-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid #e9ecef !important;
+        position: relative;
+    }
+    .payment-option-card:hover {
+        border-color: #0d6efd !important;
+        background-color: #f8f9ff !important;
+    }
+    .payment-option-card.active {
+        border-color: #198754 !important;
+        background-color: #f0fff4 !important;
+    }
+    .payment-option-card .check-icon {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        color: #198754;
+        display: none;
+    }
+    .payment-option-card.active .check-icon {
+        display: block;
+    }
 </style>
 
 <div class="container my-5">
@@ -139,6 +165,11 @@
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active rounded-pill px-4" id="bank-tab" data-bs-toggle="pill" data-bs-target="#bankTransfer" type="button" role="tab">
                                         <i class="fas fa-university me-2"></i>Chuyển khoản
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link rounded-pill px-4" id="cash-tab" data-bs-toggle="pill" data-bs-target="#cashPayment" type="button" role="tab">
+                                        <i class="fas fa-money-bill-alt me-2"></i>Tiền mặt
                                     </button>
                                 </li>
                                 <?php if (defined('VNPAY_ENABLED') && VNPAY_ENABLED): ?>
@@ -224,6 +255,43 @@
                                                     </button>
                                                 </div>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tab: Cash Payment -->
+                                <div class="tab-pane fade" id="cashPayment" role="tabpanel">
+                                    <div class="text-center py-4">
+                                        <div class="mb-4">
+                                            <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle rounded-circle" style="width: 80px; height: 80px;">
+                                                <i class="fas fa-hand-holding-usd fa-2x text-success"></i>
+                                            </div>
+                                        </div>
+                                        <h5 class="fw-bold mb-3">Thanh toán bằng Tiền mặt</h5>
+                                        <p class="text-muted mb-4">Quý khách vui lòng chọn một trong hai hình thức thanh toán tiền mặt dưới đây:</p>
+                                        
+                                        <div class="row g-3 justify-content-center">
+                                            <div class="col-md-5">
+                                                <div class="p-3 border rounded-4 bg-light h-100 payment-option-card active" onclick="selectCashOption(this)">
+                                                    <div class="check-icon"><i class="fas fa-check-circle"></i></div>
+                                                    <i class="fas fa-building text-primary mb-2 fa-lg"></i>
+                                                    <h6 class="fw-bold">Tại văn phòng</h6>
+                                                    <small class="text-muted">Tòa nhà VietTour, Số 123 Cầu Giấy, Hà Nội</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <div class="p-3 border rounded-4 bg-light h-100 payment-option-card" onclick="selectCashOption(this)">
+                                                    <div class="check-icon"><i class="fas fa-check-circle"></i></div>
+                                                    <i class="fas fa-street-view text-primary mb-2 fa-lg"></i>
+                                                    <h6 class="fw-bold">Tại địa chỉ của bạn</h6>
+                                                    <small class="text-muted">Nhân viên sẽ đến thu tiền tận nơi (Có phụ phí 20k)</small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="alert alert-warning mt-4 mb-0 border-0 bg-warning-subtle small mx-auto" style="max-width: 500px;">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Vui lòng giữ lại biên lai thu tiền để xác nhận việc đặt tour của quý khách.
                                         </div>
                                     </div>
                                 </div>
@@ -341,6 +409,14 @@ function copyToClipboard(elementId) {
     }, function(err) {
         console.error('Could not copy text: ', err);
     });
+}
+function selectCashOption(element) {
+    // Xóa class active ở tất cả các ô
+    document.querySelectorAll('.payment-option-card').forEach(card => {
+        card.classList.remove('active');
+    });
+    // Thêm class active vào ô vừa chọn
+    element.classList.add('active');
 }
 </script>
 

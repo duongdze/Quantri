@@ -145,31 +145,31 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control bg-light border-0" id="full_name" name="full_name" placeholder="Họ và tên" required value="<?= (isset($_SESSION['user']) && ($_SESSION['user']['role'] ?? '') === 'customer') ? ($_SESSION['user']['full_name'] ?? '') : '' ?>">
+                                        <input type="text" class="form-control bg-light border-0" id="full_name" name="full_name" placeholder="Họ và tên" required value="<?= $_SESSION['old_input']['full_name'] ?? ((isset($_SESSION['user']) && ($_SESSION['user']['role'] ?? '') === 'customer') ? ($_SESSION['user']['full_name'] ?? '') : '') ?>">
                                         <label for="full_name">Họ và tên <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="tel" class="form-control bg-light border-0" id="phone" name="phone" placeholder="Số điện thoại" required value="<?= (isset($_SESSION['user']) && ($_SESSION['user']['role'] ?? '') === 'customer') ? ($_SESSION['user']['phone'] ?? '') : '' ?>">
+                                        <input type="tel" class="form-control bg-light border-0" id="phone" name="phone" placeholder="Số điện thoại" required value="<?= $_SESSION['old_input']['phone'] ?? ((isset($_SESSION['user']) && ($_SESSION['user']['role'] ?? '') === 'customer') ? ($_SESSION['user']['phone'] ?? '') : '') ?>">
                                         <label for="phone">Số điện thoại <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
                                 <div class="col-md-12">
                                     <div class="form-floating">
-                                        <input type="email" class="form-control bg-light border-0" id="email" name="email" placeholder="Email" required value="<?= (isset($_SESSION['user']) && ($_SESSION['user']['role'] ?? '') === 'customer') ? ($_SESSION['user']['email'] ?? '') : '' ?>">
+                                        <input type="email" class="form-control bg-light border-0" id="email" name="email" placeholder="Email" required value="<?= $_SESSION['old_input']['email'] ?? ((isset($_SESSION['user']) && ($_SESSION['user']['role'] ?? '') === 'customer') ? ($_SESSION['user']['email'] ?? '') : '') ?>">
                                         <label for="email">Email <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
                                 <div class="col-md-12">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control bg-light border-0" id="address" name="address" placeholder="Địa chỉ" value="<?= (isset($_SESSION['user']) && ($_SESSION['user']['role'] ?? '') === 'customer') ? ($_SESSION['user']['address'] ?? '') : '' ?>">
+                                        <input type="text" class="form-control bg-light border-0" id="address" name="address" placeholder="Địa chỉ" value="<?= $_SESSION['old_input']['address'] ?? ((isset($_SESSION['user']) && ($_SESSION['user']['role'] ?? '') === 'customer') ? ($_SESSION['user']['address'] ?? '') : '') ?>">
                                         <label for="address">Địa chỉ</label>
                                     </div>
                                 </div>
                                 <div class="col-12">
                                     <div class="form-floating">
-                                        <textarea class="form-control bg-light border-0" placeholder="Ghi chú" id="note" name="note" style="height: 100px"></textarea>
+                                        <textarea class="form-control bg-light border-0" placeholder="Ghi chú" id="note" name="note" style="height: 100px"><?= $_SESSION['old_input']['note'] ?? '' ?></textarea>
                                         <label for="note">Ghi chú thêm (Ăn kiêng, dị ứng...)</label>
                                     </div>
                                 </div>
@@ -194,7 +194,7 @@
                                         </div>
                                         <div class="input-group">
                                             <button type="button" class="btn btn-outline-secondary" onclick="updateQty('adults', -1)"><i class="fas fa-minus"></i></button>
-                                            <input type="number" class="form-control text-center fw-bold" name="adults" id="adults" min="1" value="1" readonly>
+                                            <input type="number" class="form-control text-center fw-bold" name="adults" id="adults" min="1" value="<?= $_SESSION['old_input']['adults'] ?? 1 ?>" readonly>
                                             <button type="button" class="btn btn-outline-secondary" onclick="updateQty('adults', 1)"><i class="fas fa-plus"></i></button>
                                         </div>
                                     </div>
@@ -212,7 +212,7 @@
                                         </div>
                                         <div class="input-group">
                                             <button type="button" class="btn btn-outline-secondary" onclick="updateQty('children', -1)"><i class="fas fa-minus"></i></button>
-                                            <input type="number" class="form-control text-center fw-bold" name="children" id="children" min="0" value="0" readonly>
+                                            <input type="number" class="form-control text-center fw-bold" name="children" id="children" min="0" value="<?= $_SESSION['old_input']['children'] ?? 0 ?>" readonly>
                                             <button type="button" class="btn btn-outline-secondary" onclick="updateQty('children', 1)"><i class="fas fa-plus"></i></button>
                                         </div>
                                     </div>
@@ -341,4 +341,8 @@
     document.addEventListener('DOMContentLoaded', calculateTotal);
 </script>
 
-<?php include_once PATH_VIEW_CLIENT . 'default/footer.php'; ?>
+<?php 
+// Xóa dữ liệu cũ sau khi đã hiển thị để không ảnh hưởng lần đặt tour sau
+unset($_SESSION['old_input']);
+include_once PATH_VIEW_CLIENT . 'default/footer.php'; 
+?>
