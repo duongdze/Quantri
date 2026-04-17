@@ -169,10 +169,15 @@ unset($_SESSION['old'], $_SESSION['errors']);
                                 </div>
 
                                 <div class="col-md-4">
-                                    <div class="form-floating">
-                                        <input type="number" class="form-control" id="rating" name="rating" min="0" max="5" step="0.1"
-                                            value="<?= htmlspecialchars($old['rating'] ?? '5.0') ?>" placeholder=" ">
-                                        <label>Đánh giá</label>
+                                    <div class="p-3 border rounded bg-light">
+                                        <label class="form-label d-block text-muted mb-2">Đánh giá nhà xe</label>
+                                        <div class="star-rating">
+                                            <?php $currentRating = round($old['rating'] ?? 5); ?>
+                                            <?php for($i=5; $i>=1; $i--): ?>
+                                                <input type="radio" id="star<?= $i ?>" name="rating" value="<?= $i ?>" <?= ($currentRating == $i) ? 'checked' : '' ?> />
+                                                <label for="star<?= $i ?>" title="<?= $i ?> sao"><i class="fas fa-star"></i></label>
+                                            <?php endfor; ?>
+                                        </div>
                                     </div>
                                 </div>
 

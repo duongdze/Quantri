@@ -254,16 +254,14 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                         </td>
                                         <td>
                                             <?php if (!empty($supplier['rating'])): ?>
-                                                <div class="rating-display">
-                                                    <div class="stars">
+                                                <div class="stars-display">
                                                         <?php
-                                                        $rating = $supplier['rating'];
+                                                        $rating = $supplier['rating'] ?? 0;
                                                         $fullStars = floor($rating);
                                                         for ($i = 1; $i <= 5; $i++): ?>
-                                                            <i class="fas fa-star <?= $i <= $fullStars ? 'filled' : 'empty' ?>"></i>
+                                                            <i class="fas fa-star <?= $i <= $fullStars ? 'filled' : '' ?>"></i>
                                                         <?php endfor; ?>
-                                                    </div>
-                                                    <span class="rating-value"><?= number_format($rating, 1) ?></span>
+                                                    <span class="ms-1 text-dark fw-bold"><?= number_format($rating, 1) ?></span>
                                                 </div>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>

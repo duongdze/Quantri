@@ -81,14 +81,11 @@ class SupplierController
         }
 
         try {
-            // Validate required fields
-            $required = ['name'];
-            foreach ($required as $field) {
-                if (empty($_POST[$field])) {
-                    $_SESSION['error'] = "Trường {$field} là bắt buộc";
-                    header('Location: ' . BASE_URL_ADMIN . '&action=suppliers/create');
-                    exit;
-                }
+            // PT_03: Validate required fields (Name and Phone) - Strict check with trim
+            if (empty(trim($_POST['name'] ?? '')) || empty(trim($_POST['phone'] ?? ''))) {
+                $_SESSION['error'] = "Vui lòng nhập tên và số điện thoại đối tác";
+                header('Location: ' . BASE_URL_ADMIN . '&action=suppliers/create');
+                exit;
             }
 
             // Prepare data
@@ -105,7 +102,7 @@ class SupplierController
 
             // Validate email format if provided
             if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-                $_SESSION['error'] = 'Email không hợp lệ';
+                $_SESSION['error'] = 'Địa chỉ Email không hợp lệ';
                 header('Location: ' . BASE_URL_ADMIN . '&action=suppliers/create');
                 exit;
             }
@@ -193,14 +190,11 @@ class SupplierController
         }
 
         try {
-            // Validate required fields
-            $required = ['name'];
-            foreach ($required as $field) {
-                if (empty($_POST[$field])) {
-                    $_SESSION['error'] = "Trường {$field} là bắt buộc";
-                    header('Location: ' . BASE_URL_ADMIN . '&action=suppliers/edit&id=' . $id);
-                    exit;
-                }
+            // PT_03: Validate required fields (Name and Phone) - Strict check with trim
+            if (empty(trim($_POST['name'] ?? '')) || empty(trim($_POST['phone'] ?? ''))) {
+                $_SESSION['error'] = "Vui lòng nhập tên và số điện thoại đối tác";
+                header('Location: ' . BASE_URL_ADMIN . '&action=suppliers/edit&id=' . $id);
+                exit;
             }
 
             // Prepare data
@@ -217,7 +211,7 @@ class SupplierController
 
             // Validate email format if provided
             if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-                $_SESSION['error'] = 'Email không hợp lệ';
+                $_SESSION['error'] = 'Địa chỉ Email không hợp lệ';
                 header('Location: ' . BASE_URL_ADMIN . '&action=suppliers/edit&id=' . $id);
                 exit;
             }
@@ -284,6 +278,18 @@ class SupplierController
         }
 
         try {
+            // PT_08: Check if supplier is linked to any tours
+            $pdo = BaseModel::getPdo();
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM tours WHERE supplier_id = :id");
+            $stmt->execute(['id' => $id]);
+            $tourCount = (int)$stmt->fetchColumn();
+
+            if ($tourCount > 0) {
+                $_SESSION['error'] = "Không thể xóa đối tác đang trong quá trình phục vụ tour. Vui lòng gỡ liên kết trước";
+                header('Location: ' . BASE_URL_ADMIN . '&action=suppliers');
+                exit;
+            }
+
             // Delete contracts
             $this->contractModel->delete('supplier_id = :sid', ['sid' => $id]);
 

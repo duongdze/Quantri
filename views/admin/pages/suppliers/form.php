@@ -193,8 +193,8 @@ $actionUrl = BASE_URL_ADMIN . '&action=suppliers/' . ($isEdit ? 'update' : 'stor
                                     <div class="form-floating">
                                         <input type="tel" class="form-control" id="phone" name="phone" 
                                                value="<?= htmlspecialchars($supplier['phone'] ?? '') ?>" 
-                                               placeholder=" ">
-                                        <label for="phone">Số Điện Thoại</label>
+                                               required placeholder=" ">
+                                        <label for="phone">Số Điện Thoại <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
 
@@ -207,7 +207,19 @@ $actionUrl = BASE_URL_ADMIN . '&action=suppliers/' . ($isEdit ? 'update' : 'stor
                                     </div>
                                 </div>
 
-                                <!-- Rating field removed per request -->
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded bg-light">
+                                        <label class="form-label d-block text-muted mb-2">Đánh giá đối tác</label>
+                                        <div class="star-rating">
+                                            <?php $currentRating = round($supplier['rating'] ?? 5); ?>
+                                            <?php for($i=5; $i>=1; $i--): ?>
+                                                <input type="radio" id="star<?= $i ?>" name="rating" value="<?= $i ?>" <?= ($currentRating == $i) ? 'checked' : '' ?> />
+                                                <label for="star<?= $i ?>" title="<?= $i ?> sao"><i class="fas fa-star"></i></label>
+                                            <?php endfor; ?>
+                                        </div>
+                                        <small class="text-muted mt-1 d-block">Chọn số sao để đánh giá chất lượng dịch vụ.</small>
+                                    </div>
+                                </div>
 
                                 <div class="col-12">
                                     <div class="form-floating">
@@ -329,12 +341,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // basic form validation (no rating check)
     form.addEventListener('submit', function(e) {
         const name = document.getElementById('name').value.trim();
+        const phone = document.getElementById('phone').value.trim();
         const email = document.getElementById('email').value.trim();
 
-        if (!name) {
+        if (!name || !phone) {
             e.preventDefault();
-            alert('Vui lòng nhập tên nhà cung cấp');
-            document.getElementById('name').focus();
+            alert('Vui lòng nhập tên và số điện thoại đối tác');
+            if(!name) document.getElementById('name').focus();
+            else document.getElementById('phone').focus();
             return false;
         }
 
