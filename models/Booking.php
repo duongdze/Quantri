@@ -21,7 +21,9 @@ class Booking extends BaseModel
         'discount_note',
         'created_by',
         'created_at',
-        'updated_at'
+        'updated_at',
+        'refund_amount',
+        'refund_percentage'
     ];
 
     public function __construct()

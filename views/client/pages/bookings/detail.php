@@ -68,6 +68,15 @@ $statusInfo = $statusMap[$booking['status'] ?? ''] ?? ['label' => ucfirst($booki
                             <td class="text-muted">Trạng thái</td>
                             <td><span class="badge bg-<?= $statusInfo['class'] ?>"><?= $statusInfo['label'] ?></span></td>
                         </tr>
+                        <?php if ($booking['status'] === 'da_huy' && !empty($booking['refund_amount'])): ?>
+                        <tr>
+                            <td class="text-muted">Số tiền hoàn lại</td>
+                            <td class="fw-bold text-danger">
+                                <?= number_format($booking['refund_amount'], 0, ',', '.') ?>đ 
+                                <span class="fw-normal small text-muted">(<?= $booking['refund_percentage'] ?>%)</span>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
                     </table>
                 </div>
             </div>
@@ -138,13 +147,21 @@ $statusInfo = $statusMap[$booking['status'] ?? ''] ?? ['label' => ucfirst($booki
         <?php endif; ?>
 
         <!-- Actions -->
-        <div class="col-12 d-flex gap-3">
-            <a href="<?= BASE_URL ?>?action=my-bookings" class="btn btn-outline-secondary rounded-pill">
+        <div class="col-12 d-flex gap-2">
+            <a href="<?= BASE_URL ?>?action=my-bookings" class="btn btn-outline-secondary rounded-pill px-4">
                 <i class="fas fa-arrow-left me-2"></i>Quay lại
             </a>
             <?php if (in_array($booking['status'] ?? '', ['pending'])): ?>
-            <a href="<?= BASE_URL ?>?action=booking-payment&code=<?= $code ?>" class="btn btn-primary rounded-pill">
+            <a href="<?= BASE_URL ?>?action=booking-payment&code=<?= $code ?>" class="btn btn-primary rounded-pill px-4">
                 <i class="fas fa-credit-card me-2"></i>Tiến hành thanh toán
+            </a>
+            <?php endif; ?>
+            
+            <?php if (in_array($booking['status'] ?? '', ['pending', 'cho_xac_nhan'])): ?>
+            <a href="<?= BASE_URL ?>?action=booking-cancel&code=<?= $code ?>" 
+               class="btn btn-outline-danger rounded-pill px-4"
+               onclick="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')">
+                <i class="fas fa-times-circle me-2"></i>Hủy đơn hàng
             </a>
             <?php endif; ?>
         </div>

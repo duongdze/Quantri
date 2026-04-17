@@ -391,4 +391,110 @@ class ClientBookingController
         require_once PATH_ROOT . 'services/PdfService.php';
         PdfService::generateBookingInvoice($booking, $passengers);
     }
+    /**
+     * Hủy đơn hàng từ phía khách hàng
+     */
+    public function cancel()
+    {
+        if (empty($_SESSION['user'])) {
+            header('Location: ' . BASE_URL . '?action=login');
+            exit;
+        }
+
+        $code = $_GET['code'] ?? '';
+        if (!$code) {
+            header('Location: ' . BASE_URL . '?action=my-bookings');
+            exit;
+        }
+
+        $bookingId = intval(substr($code, 2));
+        $booking = $this->bookingModel->getBookingWithDetails($bookingId);
+
+        // 1. Kiểm tra đơn hàng có tồn tại và thuộc về khách hàng này không
+        if (!$booking || $booking['customer_id'] != $_SESSION['user']['user_id']) {
+            $_SESSION['error'] = 'Không tìm thấy đơn hàng hoặc bạn không có quyền hủy đơn này.';
+            header('Location: ' . BASE_URL . '?action=my-bookings');
+            exit;
+        }
+
+        // 2. Kiểm tra trạng thái có cho phép hủy không (Chỉ cho hủy nếu đang chờ thanh toán/xác nhận)
+        $cancellableStatuses = ['pending', 'cho_xac_nhan'];
+        if (!in_array($booking['status'], $cancellableStatuses)) {
+            $_SESSION['error'] = 'Đơn hàng hiện tại không thể hủy. Vui lòng liên hệ hỗ trợ để được giải quyết.';
+            header('Location: ' . BASE_URL . '?action=booking-detail&code=' . $code);
+            exit;
+        }
+
+        try {
+            $this->bookingModel->beginTransaction();
+
+            // 3. Tính toán tiền hoàn lại (Refund Policy)
+            $today = new DateTime();
+            $departureDate = new DateTime($booking['departure_date']);
+            
+            // BK_19: Tính số ngày chênh lệch dựa trên ngày (không tính giờ) để đảm bảo độ chính xác
+            $todayDate = new DateTime($today->format('Y-m-d'));
+            $depDate = new DateTime($departureDate->format('Y-m-d'));
+            
+            $interval = $todayDate->diff($depDate);
+            $daysBefore = $interval->invert ? - $interval->days : $interval->days;
+
+            $refundPercent = 0;
+            if ($daysBefore >= 15) {
+                $refundPercent = 100;
+            } elseif ($daysBefore >= 8) {
+                $refundPercent = 80;
+            } elseif ($daysBefore >= 3) {
+                $refundPercent = 50;
+            } elseif ($daysBefore >= 1) {
+                $refundPercent = 20;
+            } else {
+                $refundPercent = 0;
+            }
+
+            $totalPrice = $booking['total_price'] ?? $booking['final_price'] ?? 0;
+            $refundAmount = ($totalPrice * $refundPercent) / 100;
+
+            // 4. Cập nhật trạng thái booking và số tiền hoàn
+            $this->bookingModel->update(
+                [
+                    'status' => 'da_huy', 
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'refund_amount' => $refundAmount,
+                    'refund_percentage' => $refundPercent
+                ],
+                'id = :id',
+                ['id' => $bookingId]
+            );
+
+            // 5. Hoàn trả suất tour vào kho (inventory)
+            // Lấy số lượng khách từ booking_customers + 1 (khách đặt chính)
+            $pdo = BaseModel::getPdo();
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM booking_customers WHERE booking_id = :bid");
+            $stmt->execute([':bid' => $bookingId]);
+            $companionCount = (int)$stmt->fetchColumn();
+            $totalSeatsToReturn = $companionCount + 1;
+
+            // Cập nhật lại số ghế đã đặt trong tour_departures
+            $departure = $this->departureModel->findById($booking['departure_id']);
+            if ($departure) {
+                $newBookedSeats = max(0, $departure['booked_seats'] - $totalSeatsToReturn);
+                $this->departureModel->update(
+                    ['booked_seats' => $newBookedSeats],
+                    "id = :id",
+                    ['id' => $booking['departure_id']]
+                );
+            }
+
+            $this->bookingModel->commit();
+            $_SESSION['success'] = 'Hủy đơn hàng thành công! Suất tour đã được hoàn lại.';
+
+        } catch (Exception $e) {
+            $this->bookingModel->rollBack();
+            $_SESSION['error'] = 'Có lỗi xảy ra khi hủy đơn: ' . $e->getMessage();
+        }
+
+        header('Location: ' . BASE_URL . '?action=my-bookings');
+        exit;
+    }
 }
