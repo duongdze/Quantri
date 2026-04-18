@@ -36,8 +36,8 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                     $groupNumber = $tour['group_number'] ?? 1;
                     
                     // Lấy quy mô từ DB (ưu tiên lịch khởi hành)
-                    $minParticipants = 15; 
-                    $maxSeats = (int)($tour['max_seats'] ?? 30);
+                    $minParticipants = (int)($tour['min_participants'] ?? 15);
+                    $maxSeats = (int)($tour['max_seats'] ?? ($tour['max_participants'] ?? 30));
                     
                     // TÍNH TOÁN SỐ KHÁCH CHO TỪNG NHÓM (SLOT)
                     if (!empty($tour['is_split'])) {

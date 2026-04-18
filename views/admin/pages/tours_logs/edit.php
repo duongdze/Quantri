@@ -20,12 +20,12 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                             <i class="fas fa-clipboard-list"></i>
                             <span>Nhật ký Tour</span>
                         </a>
-                        <?php if (!empty($log['tour_id'])): ?>
+                        <?php if (!empty($log['assignment_id'])): ?>
                             <span class="breadcrumb-separator">
                                 <i class="fas fa-chevron-right"></i>
                             </span>
-                            <a href="<?= BASE_URL_ADMIN ?>&action=tours_logs/tour_detail&id=<?= $log['tour_id'] ?>" class="breadcrumb-link">
-                                <span>Chi tiết Tour</span>
+                            <a href="<?= BASE_URL_ADMIN ?>&action=tours_logs/tour_detail&assignment_id=<?= $log['assignment_id'] ?>" class="breadcrumb-link">
+                                <span>Chi tiết Đoàn</span>
                             </a>
                         <?php endif; ?>
                         <span class="breadcrumb-separator">
@@ -49,16 +49,25 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                         <form action="<?= BASE_URL_ADMIN . '&action=tours_logs/update' ?>" method="POST">
                             <input type="hidden" name="id" value="<?= $log['id'] ?>">
 
-                            <!-- Tour Selection -->
+                            <!-- Trip Identification (Assignment) -->
                             <div class="mb-4">
-                                <label for="tour_id" class="form-label fw-medium">Tour <span class="text-danger">*</span></label>
-                                <select class="form-select" id="tour_id" name="tour_id" required>
-                                    <?php foreach ($tours as $tour): ?>
-                                        <option value="<?= $tour['id'] ?>" <?= ($log['tour_id'] == $tour['id']) ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($tour['name'] ?? '') ?> (#<?= htmlspecialchars($tour['id'] ?? '') ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                                <label class="form-label fw-medium">Chuyến đi / Đoàn khách</label>
+                                <div class="form-control bg-light">
+                                    <?php 
+                                        $currentTour = null;
+                                        foreach ($tours as $t) {
+                                            if ($t['id'] == $log['tour_id']) {
+                                                $currentTour = $t;
+                                                break;
+                                            }
+                                        }
+                                        echo htmlspecialchars($currentTour['name'] ?? 'N/A');
+                                    ?>
+                                    (ID: <?= htmlspecialchars($log['assignment_id'] ?? 'Lịch sử') ?>)
+                                </div>
+                                <input type="hidden" name="assignment_id" value="<?= $log['assignment_id'] ?>">
+                                <input type="hidden" name="tour_id" value="<?= $log['tour_id'] ?>">
+                                <small class="text-muted">Thông tin chuyến đi không thể thay đổi sau khi đã tạo nhật ký.</small>
                             </div>
 
                             <!-- Date & Guide -->
@@ -120,7 +129,7 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
 
                             <!-- Actions -->
                             <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                                <a href="<?= !empty($log['tour_id']) ? BASE_URL_ADMIN . '&action=tours_logs/tour_detail&id=' . $log['tour_id'] : BASE_URL_ADMIN . '&action=tours_logs' ?>" class="btn btn-light">
+                                <a href="<?= !empty($log['assignment_id']) ? BASE_URL_ADMIN . '&action=tours_logs/tour_detail&assignment_id=' . $log['assignment_id'] : BASE_URL_ADMIN . '&action=tours_logs' ?>" class="btn btn-light">
                                     <i class="fas fa-arrow-left me-2"></i>Quay lại
                                 </a>
                                 <button type="submit" class="btn btn-warning px-4">

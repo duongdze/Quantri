@@ -86,11 +86,24 @@ class AvailableToursController
                 exit;
             }
 
+            // Tính toán ngày kết thúc dựa trên thời lượng tour
+            $duration = $this->tourAssignmentModel->getTourDuration($tourId);
+            $endDate = date('Y-m-d', strtotime($departureDate . " + " . ($duration - 1) . " days"));
+
+            // KIỂM TRA TRÙNG LỊCH
+            $busyTour = $this->tourAssignmentModel->isGuideBusy($guideId, $departureDate, $endDate);
+            if ($busyTour) {
+                $overlapInfo = "từ " . date('d/m', strtotime($busyTour['start_date'])) . " đến " . date('d/m', strtotime($busyTour['end_date']));
+                echo json_encode(['success' => false, 'message' => "Hướng dẫn viên này bận tour '{$busyTour['tour_name']}' ({$overlapInfo})"]);
+                exit;
+            }
+
             // Gán tour cho HDV
             $assignmentData = [
                 'guide_id' => $guideId,
                 'tour_id' => $tourId,
                 'start_date' => $departureDate,
+                'end_date' => $endDate,
                 'group_number' => $groupNumber,
                 'status' => 'active'
             ];
@@ -210,8 +223,8 @@ class AvailableToursController
                 ]);
             }
 
-            $minParticipants = 15; // Mặc định do DB thiếu cột min_participants
-            $maxSeats = (int)($departureInfo['max_seats'] ?? 30); // Ưu tiên max_seats từ lịch, mặc định 30
+            $minParticipants = (int)($tourInfo['min_participants'] ?? 15);
+            $maxSeats = (int)($departureInfo['max_seats'] ?? ($tourInfo['max_participants'] ?? 30));
 
             // Tính tổng khách
             $bookingModel = new Booking();
@@ -257,11 +270,22 @@ class AvailableToursController
                 }
             }
 
+            // KIỂM TRA TRÙNG LỊCH
+            $duration = $this->tourAssignmentModel->getTourDuration($tourId);
+            $endDate = date('Y-m-d', strtotime($startDate . " + " . ($duration - 1) . " days"));
+            $busyTour = $this->tourAssignmentModel->isGuideBusy($guideId, $startDate, $endDate);
+            if ($busyTour) {
+                $overlapInfo = "từ " . date('d/m', strtotime($busyTour['start_date'])) . " đến " . date('d/m', strtotime($busyTour['end_date']));
+                echo json_encode(['success' => false, 'message' => "Bạn hiện bận tour '{$busyTour['tour_name']}' ({$overlapInfo})"]);
+                exit;
+            }
+
             // Gán tour cho HDV
             $assignmentData = [
                 'guide_id' => $guideId,
                 'tour_id' => $tourId,
                 'start_date' => $startDate,
+                'end_date' => $endDate,
                 'group_number' => $groupNumber,
                 'status' => 'active'
             ];

@@ -28,6 +28,58 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                 </div>
             </div>
         </header>
+        
+        <!-- Filter Bar -->
+        <div class="card shadow-sm border-0 mb-4 filter-card">
+            <div class="card-body py-3">
+                <form action="<?= BASE_URL_ADMIN ?>" method="GET" class="row g-3 align-items-end">
+                    <input type="hidden" name="mode" value="admin">
+                    <input type="hidden" name="action" value="tours_logs">
+                    
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Tìm kiếm tour</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" name="keyword" class="form-control bg-light border-start-0" placeholder="Nhập tên tour hoặc tên HDV..." value="<?= htmlspecialchars($filters['keyword'] ?? '') ?>">
+                        </div>
+                    </div>
+
+                    <?php if ($userRole === 'admin' && !empty($allGuides)): ?>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Hướng dẫn viên</label>
+                        <select name="guide_id" class="form-select bg-light">
+                            <option value="">Tất cả HDV</option>
+                            <?php foreach ($allGuides as $g): ?>
+                                <option value="<?= $g['id'] ?>" <?= (isset($filters['guide_id']) && $filters['guide_id'] == $g['id']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($g['full_name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php endif; ?>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Trạng thái đoàn</label>
+                        <select name="status" class="form-select bg-light">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="active" <?= (isset($filters['status']) && $filters['status'] == 'active') ? 'selected' : '' ?>>Đang đi (Active)</option>
+                            <option value="completed" <?= (isset($filters['status']) && $filters['status'] == 'completed') ? 'selected' : '' ?>>Đã xong (Completed)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter me-1"></i> Lọc
+                            </button>
+                            <a href="<?= BASE_URL_ADMIN ?>&action=tours_logs" class="btn btn-light" title="Xóa bộ lọc">
+                                <i class="fas fa-redo"></i>
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <!-- Tours Grid -->
         <div class="row g-4">
@@ -40,9 +92,30 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                     <h5 class="card-title fw-bold text-primary mb-0">
                                         <?= htmlspecialchars($tour['name']) ?>
                                     </h5>
+                                    <div class="mb-1">
+                                        <small class="text-muted"><i class="fas fa-calendar-alt me-1"></i> Khởi hành: <?= date('d/m/Y', strtotime($tour['start_date'])) ?></small>
+                                    </div>
                                     <span class="badge bg-light text-dark border">
-                                        #<?= htmlspecialchars($tour['id']) ?>
+                                        Chuyến đi #<?= htmlspecialchars($tour['assignment_id']) ?>
                                     </span>
+                                </div>
+                                <div class="guide-info-quick mb-3 d-flex align-items-center">
+                                    <div class="guide-avatar-mini me-2">
+                                        <div class="avatar-circle-xs bg-info bg-opacity-10 text-info">
+                                            <i class="fas fa-user-tie"></i>
+                                        </div>
+                                    </div>
+                                    <div class="guide-name-text">
+                                        <small class="text-muted d-block">Hướng dẫn viên</small>
+                                        <span class="fw-bold text-dark small"><?= htmlspecialchars($tour['guide_name'] ?? 'N/A') ?></span>
+                                    </div>
+                                    <div class="ms-auto">
+                                        <?php if ($tour['status'] === 'active'): ?>
+                                            <span class="badge rounded-pill bg-success" style="font-size: 0.65rem;">Đang đi</span>
+                                        <?php else: ?>
+                                            <span class="badge rounded-pill bg-secondary" style="font-size: 0.65rem;">Đã xong</span>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                                 
                                 <div class="tour-stats mb-4">
@@ -51,7 +124,7 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                             <i class="fas fa-book-open"></i>
                                         </div>
                                         <div>
-                                            <small class="text-muted d-block">Tổng số nhật ký</small>
+                                            <small class="text-muted d-block">Nhật ký đoàn này</small>
                                             <span class="fw-bold fs-5"><?= $tour['log_count'] ?></span>
                                         </div>
                                     </div>
@@ -68,7 +141,7 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                     </div>
                                 </div>
 
-                                <a href="<?= BASE_URL_ADMIN . '&action=tours_logs/tour_detail&id=' . $tour['id'] ?>" class="btn btn-outline-primary w-100">
+                                <a href="<?= BASE_URL_ADMIN . '&action=tours_logs/tour_detail&assignment_id=' . $tour['assignment_id'] ?>" class="btn btn-outline-primary w-100">
                                     <i class="fas fa-eye me-2"></i>Xem chi tiết nhật ký
                                 </a>
                             </div>

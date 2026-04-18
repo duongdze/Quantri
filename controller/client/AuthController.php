@@ -113,12 +113,8 @@ class AuthController
 
         $_SESSION['success'] = 'Đăng nhập thành công! Chào mừng ' . $user['full_name'];
 
-        // Redirect theo role
-        if (in_array($user['role'], ['admin', 'guide'])) {
-            header('Location: ' . BASE_URL_ADMIN);
-        } else {
-            header('Location: ' . BASE_URL);
-        }
+        // Luôn luôn redirect về trang chủ Client khi đăng nhập tại đây, bất kể quyền hạn
+        header('Location: ' . BASE_URL);
         exit;
     }
 

@@ -721,11 +721,16 @@ class BookingController
             exit;
         }
 
-
         try {
-            $userId = $_SESSION['user']['user_id'] ?? null;
             $customerModel = new BookingCustomer();
+            // Check tour assignment status
+            $assignment = $customerModel->getAssignmentByCustomerId($customerId);
+            if ($assignment && ($assignment['status'] ?? '') === 'completed') {
+                echo json_encode(['success' => false, 'message' => 'Tour đã hoàn thành, không thể thay đổi điểm danh.']);
+                exit;
+            }
 
+            $userId = $_SESSION['user']['user_id'] ?? null;
             // Check if this is a main customer (ID starts with 'main_')
             if (strpos($customerId, 'main_') === 0) {
                 // Extract booking_id from 'main_42' -> 42
@@ -853,6 +858,16 @@ class BookingController
         try {
             $userId = $_SESSION['user']['user_id'] ?? null;
             $customerModel = new BookingCustomer();
+
+            // Check tour assignment status for the first customer (assuming all in same tour)
+            if (!empty($customerIds)) {
+                $assignment = $customerModel->getAssignmentByCustomerId($customerIds[0]);
+                if ($assignment && ($assignment['status'] ?? '') === 'completed') {
+                    echo json_encode(['success' => false, 'message' => 'Tour đã hoàn thành, không thể thay đổi điểm danh hàng loạt.']);
+                    exit;
+                }
+            }
+
             $count = 0;
 
             foreach ($customerIds as $customerId) {
@@ -872,42 +887,79 @@ class BookingController
         }
     }
 
-    /**
-     * In danh sách đoàn
-     */
+    //  In danh sách đoàn
+     
     public function printGroupList()
     {
         $bookingId = $_GET['id'] ?? null;
+        $assignmentId = $_GET['assignment_id'] ?? null;
 
-        if (!$bookingId) {
-            $_SESSION['error'] = 'Không tìm thấy booking';
+        if (!$bookingId && !$assignmentId) {
+            $_SESSION['error'] = 'Không tìm thấy thông tin chuyến đi';
             header('Location: ' . BASE_URL_ADMIN . '&action=bookings');
             return;
         }
 
-        // Lấy thông tin booking
-        $booking = $this->model->getById($bookingId);
-        if (!$booking) {
-            $_SESSION['error'] = 'Booking không tồn tại';
-            header('Location: ' . BASE_URL_ADMIN . '&action=bookings');
-            return;
-        }
-
-        // Lấy thông tin tour
         $tourModel = new Tour();
-        $tour = $tourModel->find('*', 'id = :id', ['id' => $booking['tour_id']]);
+        $assignmentModel = new TourAssignment();
+        $bookingStatusFilter = "b.status IN ('cho_xac_nhan', 'da_coc', 'da_thanh_toan', 'hoan_tat')";
 
-        // Lấy TẤT CẢ booking của tour này (chỉ đã cọc và chờ xác nhận)
+        if ($assignmentId) {
+            // Trường hợp in toàn bộ đoàn từ assignment_id
+            $assignment = $assignmentModel->getById($assignmentId);
+            if (!$assignment) {
+                $_SESSION['error'] = 'Chuyến đi không tồn tại';
+                header('Location: ' . BASE_URL_ADMIN . '&action=tours_logs');
+                return;
+            }
+            $tourId = $assignment['tour_id'];
+            $departureDate = $assignment['start_date'];
+            $tour = $tourModel->findById($tourId);
+            // Get guide info for display
+            $tour['guide_name'] = $assignment['guide_name'] ?? 'N/A';
+            
+            // Mock a "main" booking object for the view header
+            $booking = [
+                'id' => 'GROUP-' . $assignmentId,
+                'departure_date' => $departureDate
+            ];
+        } else {
+            // Trường hợp in từ booking_id (tương thích ngược)
+            $booking = $this->model->getById($bookingId);
+            if (!$booking) {
+                $_SESSION['error'] = 'Booking không tồn tại';
+                header('Location: ' . BASE_URL_ADMIN . '&action=bookings');
+                return;
+            }
+            $tourId = $booking['tour_id'];
+            $departureDate = $booking['departure_date'];
+            $tour = $tourModel->find('*', 'id = :id', ['id' => $tourId]);
+            
+            // Try to find the assignment to get the guide name
+            $pdo = $this->model->getPdo();
+            $stmt = $pdo->prepare("SELECT id FROM tour_assignments WHERE tour_id = :tid AND start_date = :sd LIMIT 1");
+            $stmt->execute([':tid' => $tourId, ':sd' => $departureDate]);
+            $assgn = $stmt->fetch();
+            if ($assgn) {
+                $assignment = $assignmentModel->getById($assgn['id']);
+                $tour['guide_name'] = $assignment['guide_name'] ?? 'N/A';
+            }
+        }
+
+        // Lấy TẤT CẢ booking của tour này trong CÙNG NGÀY KHỞI HÀNH
         $pdo = $this->model->getPdo();
         $stmt = $pdo->prepare("
             SELECT b.*, u.full_name, u.email, u.phone
             FROM bookings b
             LEFT JOIN users u ON b.customer_id = u.user_id
             WHERE b.tour_id = :tour_id 
-            AND b.status IN ('da_coc', 'cho_xac_nhan')
+            AND b.departure_date = :departure_date
+            AND {$bookingStatusFilter}
+            ORDER BY b.id ASC
         ");
         $stmt->execute([
-            ':tour_id' => $booking['tour_id']
+            ':tour_id' => $tourId,
+            ':departure_date' => $departureDate
         ]);
         $allBookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -916,36 +968,35 @@ class BookingController
         $customers = [];
 
         foreach ($allBookings as $bk) {
-            // Lấy các khách đi kèm từ booking_customers
+            // Lấy các khách từ bảng booking_customers
             $bookingCustomers = $customerModel->getByBooking($bk['id']);
 
-            // Kiểm tra xem người đặt booking đã có trong booking_customers chưa
-            $mainCustomerExists = false;
-            foreach ($bookingCustomers as $customer) {
-                if ($customer['full_name'] === $bk['full_name']) {
-                    $mainCustomerExists = true;
+            // Kiểm tra xem người đặt booking có trong booking_customers chưa
+            $mainCustomerExistsInList = false;
+            foreach ($bookingCustomers as $c) {
+                if ($c['full_name'] === ($bk['full_name'] ?? '')) {
+                    $mainCustomerExistsInList = true;
                     break;
                 }
             }
 
-            // 1. Chỉ thêm người đặt booking nếu CHƯA có trong booking_customers
-            if (!empty($bk['full_name']) && !$mainCustomerExists) {
-                $bookingCustomer = [
+            // 1. Thêm người đặt booking nếu chưa có (để không bị sót record nào)
+            if (!empty($bk['full_name']) && !$mainCustomerExistsInList) {
+                $customers[] = [
                     'full_name' => $bk['full_name'],
-                    'gender' => '', // Không có trong users table
-                    'birth_date' => '', // Không có trong users table
-                    'id_card' => '', // Không có trong users table
-                    'passenger_type' => 'adult', // Người đặt thường là người lớn
+                    'gender' => '',
+                    'birth_date' => '',
+                    'id_card' => '',
+                    'passenger_type' => 'adult',
                     'room_type' => '',
                     'special_request' => '',
                     'is_foc' => 0,
                     'booking_code' => $bk['id'],
                     'booking_customer_name' => $bk['full_name']
                 ];
-                $customers[] = $bookingCustomer;
             }
 
-            // 2. Thêm các khách đi kèm (từ bảng booking_customers)
+            // 2. Thêm các khách trong bảng booking_customers
             foreach ($bookingCustomers as $customer) {
                 $customer['booking_code'] = $bk['id'];
                 $customer['booking_customer_name'] = $bk['full_name'] ?? 'N/A';

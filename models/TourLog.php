@@ -29,9 +29,9 @@ class TourLog extends BaseModel
     public function create(array $data): bool
     {
         $sql = "INSERT INTO tour_logs 
-        (tour_id, guide_id, date, description, issue, solution, customer_feedback, weather, incident, health_status, special_activity, handling_notes, guide_rating) 
+        (tour_id, assignment_id, guide_id, date, description, issue, solution, customer_feedback, weather, incident, health_status, special_activity, handling_notes, guide_rating) 
         VALUES 
-        (:tour_id, :guide_id, :date, :description, :issue, :solution, :customer_feedback, :weather, :incident, :health_status, :special_activity, :handling_notes, :guide_rating)";
+        (:tour_id, :assignment_id, :guide_id, :date, :description, :issue, :solution, :customer_feedback, :weather, :incident, :health_status, :special_activity, :handling_notes, :guide_rating)";
 
         $stmt = self::$pdo->prepare($sql);
         return $stmt->execute($data);
@@ -42,6 +42,7 @@ class TourLog extends BaseModel
     {
         $sql = "UPDATE tour_logs SET
             tour_id = :tour_id,
+            assignment_id = :assignment_id,
             guide_id = :guide_id,
             date = :date,
             description = :description,
@@ -66,32 +67,66 @@ class TourLog extends BaseModel
         return $stmt->execute(['id' => $id]);
     }
 
+    public function getLogsByAssignmentId($assignmentId)
+    {
+        $sql = "SELECT tl.*, u.full_name as guide_name 
+                FROM {$this->table} tl
+                LEFT JOIN guides g ON tl.guide_id = g.id
+                LEFT JOIN users u ON g.user_id = u.user_id
+                WHERE tl.assignment_id = :assignment_id
+                ORDER BY tl.date DESC";
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute(['assignment_id' => $assignmentId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function getLogsByTourId($tourId)
     {
         $sql = "SELECT tl.*, u.full_name as guide_name 
                 FROM {$this->table} tl
                 LEFT JOIN guides g ON tl.guide_id = g.id
                 LEFT JOIN users u ON g.user_id = u.user_id
-                WHERE tl.tour_id = :tour_id
+                WHERE tl.tour_id = :tour_id AND tl.assignment_id IS NULL
                 ORDER BY tl.date DESC";
         $stmt = self::$pdo->prepare($sql);
         $stmt->execute(['tour_id' => $tourId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getToursWithLogStats()
+    public function getToursWithLogStats($filters = [])
     {
-        $sql = "SELECT t.id, t.name, 
-                       COUNT(DISTINCT tl.id) as log_count, 
+        $params = [];
+        $where = "WHERE ta.status IN ('active', 'completed')";
+
+        if (!empty($filters['guide_id'])) {
+            $where .= " AND ta.guide_id = :guide_id";
+            $params['guide_id'] = $filters['guide_id'];
+        }
+
+        if (!empty($filters['keyword'])) {
+            $where .= " AND (t.name LIKE :keyword OR u.full_name LIKE :keyword)";
+            $params['keyword'] = '%' . $filters['keyword'] . '%';
+        }
+
+        if (!empty($filters['status'])) {
+            $where .= " AND ta.status = :status";
+            $params['status'] = $filters['status'];
+        }
+
+        $sql = "SELECT ta.id as assignment_id, t.name, ta.start_date, ta.end_date, ta.status,
+                       u.full_name as guide_name,
+                       COUNT(tl.id) as log_count, 
                        MAX(tl.date) as last_log_date
-                FROM tours t
-                INNER JOIN tour_assignments ta ON t.id = ta.tour_id
-                LEFT JOIN tour_logs tl ON t.id = tl.tour_id
-                WHERE ta.status = 'active'
-                GROUP BY t.id, t.name
-                ORDER BY last_log_date DESC";
+                FROM tour_assignments ta
+                INNER JOIN tours t ON ta.tour_id = t.id
+                INNER JOIN guides g ON ta.guide_id = g.id
+                INNER JOIN users u ON g.user_id = u.user_id
+                LEFT JOIN tour_logs tl ON ta.id = tl.assignment_id
+                $where
+                GROUP BY ta.id, t.name, ta.start_date, ta.end_date, ta.status, u.full_name
+                ORDER BY ta.start_date DESC";
         $stmt = self::$pdo->prepare($sql);
-        $stmt->execute();
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -100,16 +135,19 @@ class TourLog extends BaseModel
      */
     public function getToursWithLogStatsByGuide($guideId)
     {
-        $sql = "SELECT t.id, t.name, 
+        $sql = "SELECT ta.id as assignment_id, t.name, ta.start_date, ta.end_date, ta.status,
+                       u.full_name as guide_name,
                        COUNT(tl.id) as log_count, 
                        MAX(tl.date) as last_log_date
-                FROM tours t
-                INNER JOIN tour_assignments ta ON t.id = ta.tour_id
-                LEFT JOIN tour_logs tl ON t.id = tl.tour_id
+                FROM tour_assignments ta
+                INNER JOIN tours t ON ta.tour_id = t.id
+                INNER JOIN guides g ON ta.guide_id = g.id
+                INNER JOIN users u ON g.user_id = u.user_id
+                LEFT JOIN tour_logs tl ON ta.id = tl.assignment_id
                 WHERE ta.guide_id = :guide_id 
-                AND ta.status = 'active'
-                GROUP BY t.id, t.name
-                ORDER BY last_log_date DESC";
+                AND ta.status IN ('active', 'completed')
+                GROUP BY ta.id, t.name, ta.start_date, ta.end_date, ta.status, u.full_name
+                ORDER BY ta.start_date DESC";
         $stmt = self::$pdo->prepare($sql);
         $stmt->execute(['guide_id' => $guideId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

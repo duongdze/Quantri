@@ -23,18 +23,36 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                         <span class="breadcrumb-separator">
                             <i class="fas fa-chevron-right"></i>
                         </span>
-                        <span class="breadcrumb-current"><?= htmlspecialchars($tour['name'] ?? '') ?></span>
+                        <span class="breadcrumb-current"><?= htmlspecialchars($tripTitle ?? ($tour['name'] ?? '')) ?></span>
                     </div>
                     <div class="page-title-section">
                         <h1 class="page-title">
                             <i class="fas fa-history title-icon"></i>
-                            Lịch sử Nhật ký
+                            Lịch sử Nhật ký Đoàn
                         </h1>
-                        <p class="page-subtitle">Danh sách nhật ký hoạt động của tour: <strong><?= htmlspecialchars($tour['name'] ?? '') ?></strong></p>
+                        <p class="page-subtitle">Danh sách nhật ký hoạt động của đoàn: <strong><?= htmlspecialchars($tripTitle ?? ($tour['name'] ?? '')) ?></strong></p>
                     </div>
                 </div>
-                <div class="header-right">
-                    <a href="<?= BASE_URL_ADMIN . '&action=tours_logs/create&tour_id=' . ($tour['id'] ?? '') ?>" class="btn btn-modern btn-primary">
+                <div class="header-right d-flex align-items-center gap-3">
+                    <div class="header-guide-info d-flex align-items-center bg-white p-2 px-3 rounded-pill shadow-sm border">
+                        <div class="avatar-circle-xs bg-primary bg-opacity-10 text-primary me-2">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="me-3">
+                            <small class="text-muted d-block" style="font-size: 0.7rem; line-height: 1;">Phụ trách</small>
+                            <span class="fw-bold text-dark small"><?= htmlspecialchars($tour['guide_name'] ?? 'N/A') ?></span>
+                        </div>
+                        <?php if (($tour['status'] ?? '') === 'active'): ?>
+                            <span class="badge rounded-pill bg-success">Đang đi</span>
+                        <?php else: ?>
+                            <span class="badge rounded-pill bg-secondary">Đã xong</span>
+                        <?php endif; ?>
+                    </div>
+                    <a href="<?= BASE_URL_ADMIN . '&action=bookings/print-group-list&assignment_id=' . ($assignmentId ?? '') ?>" target="_blank" class="btn btn-modern btn-outline-primary">
+                        <i class="fas fa-print me-2"></i>
+                        In danh sách đoàn
+                    </a>
+                    <a href="<?= BASE_URL_ADMIN . '&action=tours_logs/create&assignment_id=' . ($assignmentId ?? '') ?>" class="btn btn-modern btn-primary">
                         <i class="fas fa-plus-circle me-2"></i>
                         Thêm nhật ký ngày
                     </a>
@@ -221,6 +239,7 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                                     onsubmit="return confirm('Bạn có chắc muốn xóa nhật ký này?')"
                                                     class="d-inline">
                                                     <input type="hidden" name="id" value="<?= htmlspecialchars($log['id']) ?>">
+                                                    <input type="hidden" name="assignment_id" value="<?= htmlspecialchars($assignmentId ?? '') ?>">
                                                     <input type="hidden" name="tour_id" value="<?= htmlspecialchars($tour['id'] ?? '') ?>">
                                                     <button class="btn btn-sm btn-outline-danger"
                                                         data-bs-toggle="tooltip"
@@ -239,7 +258,7 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                             <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
                                             <h5 class="text-muted">Chưa có nhật ký nào cho tour này</h5>
                                             <p class="text-muted mb-3">Bắt đầu ghi nhận hoạt động của tour ngay hôm nay.</p>
-                                            <a href="<?= BASE_URL_ADMIN . '&action=tours_logs/create&tour_id=' . ($tour['id'] ?? '') ?>" class="btn btn-primary">
+                                            <a href="<?= BASE_URL_ADMIN . '&action=tours_logs/create&assignment_id=' . ($assignmentId ?? '') ?>" class="btn btn-primary">
                                                 <i class="fas fa-plus me-2"></i>Thêm nhật ký đầu tiên
                                             </a>
                                         </div>

@@ -149,6 +149,7 @@ match ($action) {
     'guides/tour-bookings'                  => (new TourAssignmentController)->tourBookings(),
     'guides/accept-booking'                 => (new TourAssignmentController)->acceptBooking(), // AJAX
     'guides/remove-assignment'              => (new TourAssignmentController)->removeAssignmentByAdmin(), // AJAX
+    'guides/update-assignment'              => (new TourAssignmentController)->updateAssignment(), // AJAX
 
     // Bus Companies (Nhà xe)
     'bus-companies'                         => (new BusCompanyController)->index(),

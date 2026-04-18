@@ -6,6 +6,10 @@ class GuideWorkController
     public function __construct()
     {
         check_role(['admin', 'guide']);
+
+        // Tự động cập nhật các tour đã kết thúc
+        require_once 'models/TourAssignment.php';
+        (new TourAssignment())->autoCompleteStaleAssignments();
     }
 
     public function schedule()

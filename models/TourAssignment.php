@@ -19,13 +19,69 @@ class TourAssignment extends BaseModel
         'group_number',
         'departure_id'
     ];
+    /**
+     * Lấy số ngày đi tour dựa trên số lượng ngày trong lịch trình
+     */
+    public function getTourDuration($tourId)
+    {
+        $sql = "SELECT MAX(day_number) as max_day FROM itineraries WHERE tour_id = :tour_id";
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute(['tour_id' => $tourId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $days = (int)($result['max_day'] ?? 0);
+        return ($days > 0) ? $days : 1; // Mặc định 1 ngày nếu chưa có lịch trình
+    }
+
+    /**
+     * Kiểm tra HDV có bị trùng lịch vào khoảng thời gian này không
+     * @param int $guideId
+     * @param string $startDate (Y-m-d)
+     * @param string $endDate (Y-m-d)
+     * @param int|null $excludeAssignmentId - Bỏ qua ID này khi update
+     * @return array|false - Trả về thông tin tour bị trùng hoặc false
+     */
+    public function isGuideBusy($guideId, $startDate, $endDate, $excludeAssignmentId = null)
+    {
+        $sql = "SELECT ta.*, t.name as tour_name 
+                FROM {$this->table} ta
+                JOIN tours t ON ta.tour_id = t.id
+                WHERE ta.guide_id = :guide_id 
+                AND ta.status = 'active'
+                AND (
+                    (ta.start_date <= :end_date AND COALESCE(ta.end_date, ta.start_date) >= :start_date)
+                )";
+        
+        $params = [
+            'guide_id' => $guideId,
+            'start_date' => $startDate,
+            'end_date' => $endDate
+        ];
+
+        if ($excludeAssignmentId) {
+            $sql .= " AND ta.id != :exclude_id";
+            $params['exclude_id'] = $excludeAssignmentId;
+        }
+
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 
     /**
      * Lấy chi tiết assignment theo ID
      */
     public function getById($id)
     {
-        return $this->find('*', 'id = :id', ['id' => $id]);
+        $sql = "SELECT ta.*, u.full_name as guide_name, u.phone as guide_phone, t.name as tour_name
+                FROM {$this->table} ta
+                LEFT JOIN guides g ON ta.guide_id = g.id
+                LEFT JOIN users u ON g.user_id = u.user_id
+                LEFT JOIN tours t ON ta.tour_id = t.id
+                WHERE ta.id = :id";
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -101,6 +157,18 @@ class TourAssignment extends BaseModel
         $stmt = self::$pdo->prepare($sql);
         $stmt->execute(['tour_id' => $tourId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Cập nhật người phụ trách (HDV) cho bản ghi phân công
+     */
+    public function updateGuide($id, $newGuideId)
+    {
+        return $this->update(
+            ['guide_id' => $newGuideId],
+            'id = :id',
+            ['id' => $id]
+        );
     }
 
     /**
@@ -213,6 +281,8 @@ class TourAssignment extends BaseModel
             t.name as tour_name, 
             t.category_id, 
             t.description, 
+            t.min_participants,
+            t.max_participants,
             t.base_price as tour_base_price,
             td.id as departure_id,
             td.max_seats,
@@ -243,7 +313,7 @@ class TourAssignment extends BaseModel
             GROUP BY booking_id
         ) bc_count ON b.id = bc_count.booking_id
         WHERE t.status = 'active'
-        GROUP BY t.id, t.name, t.category_id, t.description, t.base_price, b.departure_date, td.id, td.max_seats
+        GROUP BY t.id, t.name, t.category_id, t.description, t.min_participants, t.max_participants, t.base_price, b.departure_date, td.id, td.max_seats
         ORDER BY b.departure_date ASC, t.name ASC";
 
         $stmt = self::$pdo->prepare($sql);
@@ -388,5 +458,26 @@ class TourAssignment extends BaseModel
         $stmt = self::$pdo->prepare($sql);
         $stmt->execute(['tour_id' => $tourId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Tự động cập nhật các tour đã kết thúc về trạng thái 'completed'
+     * Dựa trên ngày kết thúc (end_date)
+     */
+    public function autoCompleteStaleAssignments()
+    {
+        try {
+            // Cập nhật các tour active đã quá ngày kết thúc
+            $sql = "UPDATE {$this->table} 
+                    SET status = 'completed' 
+                    WHERE status = 'active' 
+                    AND end_date < CURDATE()";
+            
+            $stmt = self::$pdo->prepare($sql);
+            return $stmt->execute();
+        } catch (Exception $e) {
+            error_log('Error auto-completing stale assignments: ' . $e->getMessage());
+            return false;
+        }
     }
 }

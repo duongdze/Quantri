@@ -201,9 +201,34 @@ class BookingCustomer extends BaseModel
      * @param string $passengerType
      * @return float
      */
-    public function getPriceForPassenger($tourId, $versionId, $passengerType)
+    /**
+     * Lấy thông tin assignment (đoàn khách) từ ID khách hàng
+     * 
+     * @param int|string $customerId
+     * @return array|false
+     */
+    public function getAssignmentByCustomerId($customerId)
     {
-        $priceModel = new TourVersionPrice();
-        return $priceModel->getPriceByType($tourId, $versionId, $passengerType);
+        // Xử lý trường hợp khách hàng chính (main_ID)
+        if (strpos($customerId, 'main_') === 0) {
+            $bookingId = (int)str_replace('main_', '', $customerId);
+        } else {
+            // Khách hàng đi kèm - lấy booking_id từ bảng booking_customers
+            $customer = $this->find('booking_id', 'id = :id', ['id' => $customerId]);
+            if (!$customer) return false;
+            $bookingId = $customer['booking_id'];
+        }
+
+        // Từ booking_id, tìm assignment thông qua tour_id và departure_date
+        $sql = "SELECT ta.* 
+                FROM tour_assignments ta
+                INNER JOIN bookings b ON ta.tour_id = b.tour_id 
+                    AND ta.start_date = b.departure_date
+                WHERE b.id = :booking_id
+                LIMIT 1";
+
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute(['booking_id' => $bookingId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }

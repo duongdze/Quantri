@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Danh sách đoàn - Booking #<?= $booking['id'] ?></title>
+    <title>Danh sách đoàn - <?= htmlspecialchars($booking['id']) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         /* Screen styles */
@@ -182,8 +182,12 @@
                 <td><strong><?= htmlspecialchars($tour['name'] ?? 'N/A') ?></strong></td>
             </tr>
             <tr>
-                <td>Mã booking:</td>
+                <td>Mã đoàn/Booking:</td>
                 <td><strong>#<?= htmlspecialchars($booking['id']) ?></strong></td>
+            </tr>
+            <tr>
+                <td>Hướng dẫn viên:</td>
+                <td><strong><?= htmlspecialchars($tour['guide_name'] ?? 'N/A') ?></strong></td>
             </tr>
             <tr>
                 <td>Ngày khởi hành:</td>
@@ -282,6 +286,7 @@
     <div class="signature-section">
         <div class="signature-box">
             <div><strong>Hướng dẫn viên</strong></div>
+            <div class="mt-2 small text-dark fw-bold"><?= htmlspecialchars($tour['guide_name'] ?? '') ?></div>
             <div class="signature-line">(Ký và ghi rõ họ tên)</div>
         </div>
         <div class="signature-box">

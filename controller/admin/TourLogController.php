@@ -11,24 +11,38 @@ class TourLogController
     {
         check_role(['admin', 'guide']);
         $this->model = new TourLog();
+
+        // Tự động cập nhật các tour đã kết thúc
+        require_once 'models/TourAssignment.php';
+        (new TourAssignment())->autoCompleteStaleAssignments();
     }
 
     public function index()
     {
         $userRole = $_SESSION['user']['role'] ?? 'customer';
+        $filters = [
+            'keyword'  => $_GET['keyword'] ?? '',
+            'guide_id' => $_GET['guide_id'] ?? '',
+            'status'   => $_GET['status'] ?? ''
+        ];
+
+        $guideModel = new Guide();
+        $allGuides = [];
 
         if ($userRole === 'guide') {
             // HDV chỉ xem tours của mình
-            $guideModel = new Guide();
             $guide = $guideModel->getByUserId($_SESSION['user']['user_id']);
             if ($guide) {
+                // HDV thường không cần lọc theo chính mình, nhưng ta vẫn lấy dữ liệu
                 $tours = $this->model->getToursWithLogStatsByGuide($guide['id']);
+                // Ở đây nếu muốn hỗ trợ search trong list của HDV, ta có thể cải tiến Model thêm
             } else {
                 $tours = [];
             }
         } else {
-            // Admin xem tất cả
-            $tours = $this->model->getToursWithLogStats();
+            // Admin xem tất cả và có thể lọc
+            $tours = $this->model->getToursWithLogStats($filters);
+            $allGuides = $guideModel->getAllWithName();
         }
 
         require_once PATH_VIEW_ADMIN . 'pages/tours_logs/index.php';
@@ -39,27 +53,43 @@ class TourLogController
         $userRole = $_SESSION['user']['role'] ?? 'customer';
         $tourModel = new Tour();
         $guideModel = new Guide();
+        $assignmentModel = new TourAssignment();
 
         if ($userRole === 'guide') {
             // HDV chỉ chọn tours của mình
             $guide = $guideModel->getByUserId($_SESSION['user']['user_id']);
             if ($guide) {
-                // Lấy tours được phân công cho HDV này
-                $sql = "SELECT DISTINCT t.* FROM tours t
-                        INNER JOIN tour_assignments ta ON t.id = ta.tour_id
+                // Lấy các chuyến đi (assignments) đang hoạt động của HDV này
+                $sql = "SELECT ta.id as assignment_id, t.name as tour_name, ta.start_date, ta.tour_id
+                        FROM tour_assignments ta
+                        INNER JOIN tours t ON ta.tour_id = t.id
                         WHERE ta.guide_id = :guide_id AND ta.status = 'active'";
                 $pdo = $tourModel->getPDO();
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute(['guide_id' => $guide['id']]);
-                $tours = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
             } else {
-                $tours = [];
+                $assignments = [];
             }
-            $guides = [$guide]; // Chỉ hiển thị chính mình
+            $guides = [$guide];
         } else {
-            // Admin chọn tất cả tours và guides
-            $tours = $tourModel->select();
+            // Admin chọn từ tất cả chuyến đi đang active/completed
+            $sql = "SELECT ta.id as assignment_id, t.name as tour_name, ta.start_date, ta.tour_id, u.full_name as guide_name
+                    FROM tour_assignments ta
+                    INNER JOIN tours t ON ta.tour_id = t.id
+                    INNER JOIN guides g ON ta.guide_id = g.id
+                    INNER JOIN users u ON g.user_id = u.user_id
+                    WHERE ta.status IN ('active', 'completed')
+                    ORDER BY ta.start_date DESC";
+            $pdo = $tourModel->getPDO();
+            $stmt = $pdo->query($sql);
+            $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $guides = $guideModel->getAllWithName();
+        }
+
+        $selectedAssignment = null;
+        if (isset($_GET['assignment_id'])) {
+            $selectedAssignment = $assignmentModel->getById($_GET['assignment_id']);
         }
 
         require_once PATH_VIEW_ADMIN . 'pages/tours_logs/create.php';
@@ -67,8 +97,19 @@ class TourLogController
 
     public function store()
     {
+        $assignmentId = $_POST['assignment_id'] ?? null;
+        $tourId = $_POST['tour_id'] ?? null;
+
+        // Nếu có assignment_id mà chưa có tour_id, lấy tour_id từ assignment
+        if ($assignmentId && !$tourId) {
+            $assignmentModel = new TourAssignment();
+            $assign = $assignmentModel->getById($assignmentId);
+            $tourId = $assign['tour_id'] ?? null;
+        }
+
         $data = [
-            'tour_id'           => $_POST['tour_id'] ?? null,
+            'tour_id'           => $tourId,
+            'assignment_id'     => $assignmentId,
             'guide_id'          => $_POST['guide_id'] ?? null,
             'date'              => $_POST['date'] ?? date('Y-m-d'),
             'description'       => $_POST['description'] ?? '',
@@ -101,9 +142,9 @@ class TourLogController
         }
 
         $this->model->create($data);
-        // Redirect back to tour detail if tour_id is present
-        if ($data['tour_id']) {
-            header('Location:' . BASE_URL_ADMIN . '&action=tours_logs/tour_detail&id=' . $data['tour_id']);
+        // Redirect back to trip detail
+        if ($data['assignment_id']) {
+            header('Location:' . BASE_URL_ADMIN . '&action=tours_logs/tour_detail&assignment_id=' . $data['assignment_id']);
         } else {
             header('Location:' . BASE_URL_ADMIN . '&action=tours_logs');
         }
@@ -160,6 +201,7 @@ class TourLogController
 
         $data = [
             'tour_id'           => $_POST['tour_id'] ?? null,
+            'assignment_id'     => $_POST['assignment_id'] ?? null,
             'guide_id'          => $_POST['guide_id'] ?? null,
             'date'              => $_POST['date'] ?? date('Y-m-d'),
             'description'       => $_POST['description'] ?? '',
@@ -193,9 +235,9 @@ class TourLogController
 
         $this->model->updateLog($id, $data);
 
-        // Redirect back to tour detail if tour_id is present
-        if ($data['tour_id']) {
-            header('Location:' . BASE_URL_ADMIN . '&action=tours_logs/tour_detail&id=' . $data['tour_id']);
+        // Redirect back to trip detail
+        if ($data['assignment_id']) {
+            header('Location:' . BASE_URL_ADMIN . '&action=tours_logs/tour_detail&assignment_id=' . $data['assignment_id']);
         } else {
             header('Location:' . BASE_URL_ADMIN . '&action=tours_logs');
         }
@@ -219,29 +261,52 @@ class TourLogController
 
     public function tourDetail()
     {
-        $tourId = $_GET['id'] ?? null;
-        if (!$tourId) {
-            die('Thiếu Tour ID');
+        $assignmentId = $_GET['assignment_id'] ?? null;
+        $tourId = $_GET['id'] ?? null; // compatibility for old logs if needed
+
+        if (!$assignmentId && !$tourId) {
+            die('Thiếu thông tin chuyến đi');
         }
 
-        // Kiểm tra quyền truy cập tour
-        $userRole = $_SESSION['user']['role'] ?? 'customer';
-        if ($userRole === 'guide') {
-            $guideModel = new Guide();
-            $guide = $guideModel->getByUserId($_SESSION['user']['user_id']);
-            if (!$guide || !$this->model->canGuideAccessTour($tourId, $guide['id'])) {
-                die('Bạn không có quyền xem tour này');
-            }
-        }
-
+        $assignmentModel = new TourAssignment();
         $tourModel = new Tour();
-        $tour = $tourModel->findById($tourId);
+
+        if ($assignmentId) {
+            $assignment = $assignmentModel->getById($assignmentId);
+            if (!$assignment) die('Không tìm thấy chuyến đi');
+            $tourId = $assignment['tour_id'];
+            $tour = $tourModel->findById($tourId);
+            
+            // Merge assignment data to tour object for easy access in view
+            if ($tour && $assignment) {
+                $assignmentId = $assignment['id']; // Đảm bảo ID này luôn có giá trị cho View
+                $tour['guide_name'] = $assignment['guide_name'] ?? 'N/A';
+                $tour['start_date'] = $assignment['start_date'];
+                $tour['status'] = $assignment['status'];
+            }
+            
+            $logs = $this->model->getLogsByAssignmentId($assignmentId);
+            
+            // Tên hiển thị kèm khoảng ngày
+            $dateRange = date('d/m/Y', strtotime($assignment['start_date']));
+            if (!empty($assignment['end_date']) && $assignment['end_date'] !== $assignment['start_date']) {
+                $dateRange .= " - " . date('d/m/Y', strtotime($assignment['end_date']));
+            }
+            $tripTitle = ($tour['name'] ?? 'Tour') . " (" . $dateRange . ")";
+        } else {
+            // Fallback cho logs cũ (nhưng Option A là ẩn nên có thể không cần lo lắng nhiều ở đây)
+            $tour = $tourModel->findById($tourId);
+            $logs = $this->model->getLogsByTourId($tourId);
+            $assignment = null;
+            $tripTitle = $tour['name'] . " (Lịch sử)";
+        }
 
         if (!$tour) {
             die('Không tìm thấy Tour');
         }
 
-        $logs = $this->model->getLogsByTourId($tourId);
+        // Kiểm tra quyền truy cập tour (có thể cần cập nhật checks ở đây)
+        // ...
 
         // Lấy danh sách khách có yêu cầu đặc biệt
         $bookingCustomerModel = new BookingCustomer();

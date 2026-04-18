@@ -29,7 +29,8 @@ class Guide extends BaseModel
                     u.full_name,
                     u.email,
                     u.phone,
-                    u.avatar
+                    u.avatar,
+                    (SELECT COUNT(*) FROM tour_assignments ta WHERE ta.guide_id = g.id AND ta.status != 'cancelled') as total_assignments
                 FROM {$this->table} AS g
                 LEFT JOIN users AS u ON g.user_id = u.user_id
                 ORDER BY g.id DESC";

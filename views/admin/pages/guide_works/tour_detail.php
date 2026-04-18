@@ -37,13 +37,12 @@ $statusColors = [
           </p>
         </div>
         <div class="d-flex gap-2">
-          <?php if (!empty($allCustomers)): ?>
-            <a href="<?= BASE_URL_ADMIN . '&action=bookings/print-group-list&id=' . ($bookings[0]['id'] ?? '') ?>"
-              class="btn btn-outline-primary"
-              target="_blank">
-              <i class="fas fa-print"></i> In danh sách
-            </a>
-          <?php endif; ?>
+          <a href="<?= BASE_URL_ADMIN . '&action=bookings/print-group-list&assignment_id=' . ($id ?? '') ?>" target="_blank" class="btn btn-outline-primary">
+            <i class="fas fa-print me-1"></i> In danh sách đoàn
+          </a>
+          <a href="<?= BASE_URL_ADMIN . '&action=guide_works/add_log&id=' . ($id ?? '') ?>" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Thêm nhật ký
+          </a>
           <a href="<?= BASE_URL_ADMIN . '&action=guide/schedule' ?>" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Quay lại
           </a>
@@ -178,6 +177,22 @@ $statusColors = [
 
       <!-- Customer List with Check-in -->
       <?php if (!empty($allCustomers)): ?>
+        <?php $isCompleted = ($assignment['status'] ?? '') === 'completed'; ?>
+        
+        <?php if ($isCompleted): ?>
+          <div class="alert alert-warning border-0 shadow-sm mb-4">
+            <div class="d-flex">
+              <div class="flex-shrink-0">
+                <i class="fas fa-lock fa-2x text-warning"></i>
+              </div>
+              <div class="flex-grow-1 ms-3">
+                <h6 class="alert-heading fw-bold mb-1">Dữ liệu đã khóa</h6>
+                <p class="mb-0 small">Tour này đã ở trạng thái <strong>Hoàn thành</strong>. Bạn không thể thay đổi thông tin điểm danh của khách hàng.</p>
+              </div>
+            </div>
+          </div>
+        <?php endif; ?>
+
         <div class="card border-0 shadow-sm mb-4">
           <div class="card-header bg-white border-bottom">
             <div class="d-flex justify-content-between align-items-center">
@@ -185,10 +200,10 @@ $statusColors = [
                 <i class="fas fa-users"></i> Danh sách khách (<?= count($allCustomers) ?>)
               </h5>
               <div class="d-flex gap-2">
-                <button type="button" class="btn btn-success btn-sm" id="btn-checkin-all">
+                <button type="button" class="btn btn-success btn-sm" id="btn-checkin-all" <?= $isCompleted ? 'disabled' : '' ?>>
                   <i class="fas fa-check-double"></i> Check-in đã chọn
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-select-all">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-select-all" <?= $isCompleted ? 'disabled' : '' ?>>
                   <i class="fas fa-check-square"></i> Chọn tất cả
                 </button>
               </div>
@@ -200,7 +215,7 @@ $statusColors = [
                 <thead class="table-light">
                   <tr>
                     <th width="50">
-                      <input type="checkbox" class="form-check-input" id="checkbox-all">
+                      <input type="checkbox" class="form-check-input" id="checkbox-all" <?= $isCompleted ? 'disabled' : '' ?>>
                     </th>
                     <th width="50">STT</th>
                     <th>Họ tên</th>
@@ -217,7 +232,7 @@ $statusColors = [
                   <?php foreach ($allCustomers as $index => $customer): ?>
                     <tr data-customer-id="<?= $customer['id'] ?>">
                       <td>
-                        <input type="checkbox" class="form-check-input customer-checkbox" value="<?= $customer['id'] ?>">
+                        <input type="checkbox" class="form-check-input customer-checkbox" value="<?= $customer['id'] ?>" <?= $isCompleted ? 'disabled' : '' ?>>
                       </td>
                       <td><?= $index + 1 ?></td>
                       <td>
@@ -266,13 +281,13 @@ $statusColors = [
                       </td>
                       <td>
                         <div class="btn-group btn-group-sm" role="group">
-                          <button type="button" class="btn btn-outline-success btn-checkin" data-customer-id="<?= $customer['id'] ?>" data-status="checked_in" title="Đã đến">
+                          <button type="button" class="btn btn-outline-success btn-checkin" data-customer-id="<?= $customer['id'] ?>" data-status="checked_in" title="Đã đến" <?= $isCompleted ? 'disabled' : '' ?>>
                             <i class="fas fa-check"></i>
                           </button>
-                          <button type="button" class="btn btn-outline-danger btn-checkin" data-customer-id="<?= $customer['id'] ?>" data-status="absent" title="Vắng mặt">
+                          <button type="button" class="btn btn-outline-danger btn-checkin" data-customer-id="<?= $customer['id'] ?>" data-status="absent" title="Vắng mặt" <?= $isCompleted ? 'disabled' : '' ?>>
                             <i class="fas fa-times"></i>
                           </button>
-                          <button type="button" class="btn btn-outline-secondary btn-checkin" data-customer-id="<?= $customer['id'] ?>" data-status="not_arrived" title="Reset">
+                          <button type="button" class="btn btn-outline-secondary btn-checkin" data-customer-id="<?= $customer['id'] ?>" data-status="not_arrived" title="Reset" <?= $isCompleted ? 'disabled' : '' ?>>
                             <i class="fas fa-undo"></i>
                           </button>
                         </div>

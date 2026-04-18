@@ -225,6 +225,7 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                     <th>Liên Hệ</th>
                                     <th>Ngôn Ngữ</th>
                                     <th>Kinh Nghiệm</th>
+                                    <th>Số tour</th>
                                     <th>Đánh Giá</th>
                                     <th>Hành Động</th>
                                 </tr>
@@ -264,6 +265,11 @@ include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
                                         </td>
                                         <td>
                                             <strong><?= htmlspecialchars($guide['experience_years'] ?? 0) ?></strong> năm
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary rounded-pill">
+                                                <?= number_format($guide['total_assignments'] ?? 0) ?> tour
+                                            </span>
                                         </td>
                                         <td>
                                             <div class="rating-display">

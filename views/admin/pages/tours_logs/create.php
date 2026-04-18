@@ -2,7 +2,7 @@
 include_once PATH_VIEW_ADMIN . 'default/header.php';
 include_once PATH_VIEW_ADMIN . 'default/sidebar.php';
 
-$preSelectedTourId = $_GET['tour_id'] ?? null;
+$preSelectedAssignmentId = $_GET['assignment_id'] ?? null;
 ?>
 <main class="dashboard tour-logs-page">
     <div class="dashboard-container">
@@ -22,12 +22,12 @@ $preSelectedTourId = $_GET['tour_id'] ?? null;
                             <i class="fas fa-clipboard-list"></i>
                             <span>Nhật ký Tour</span>
                         </a>
-                        <?php if ($preSelectedTourId): ?>
+                        <?php if ($preSelectedAssignmentId): ?>
                             <span class="breadcrumb-separator">
                                 <i class="fas fa-chevron-right"></i>
                             </span>
-                            <a href="<?= BASE_URL_ADMIN ?>&action=tours_logs/tour_detail&id=<?= $preSelectedTourId ?>" class="breadcrumb-link">
-                                <span>Chi tiết Tour</span>
+                            <a href="<?= BASE_URL_ADMIN ?>&action=tours_logs/tour_detail&assignment_id=<?= $preSelectedAssignmentId ?>" class="breadcrumb-link">
+                                <span>Chi tiết Đoàn</span>
                             </a>
                         <?php endif; ?>
                         <span class="breadcrumb-separator">
@@ -50,17 +50,18 @@ $preSelectedTourId = $_GET['tour_id'] ?? null;
                     <div class="card-body p-4">
                         <form action="<?= BASE_URL_ADMIN . '&action=tours_logs/store' ?>" method="POST">
 
-                            <!-- Tour Selection -->
+                            <!-- Assignment Selection -->
                             <div class="mb-4">
-                                <label for="tour_id" class="form-label fw-medium">Chọn Tour <span class="text-danger">*</span></label>
-                                <select class="form-select" id="tour_id" name="tour_id" required>
-                                    <option value="">-- Chọn Tour --</option>
-                                    <?php foreach ($tours as $tour): ?>
-                                        <option value="<?= $tour['id'] ?>" <?= ($preSelectedTourId == $tour['id']) ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($tour['name']) ?> (#<?= htmlspecialchars($tour['id']) ?>)
+                                <label for="assignment_id" class="form-label fw-medium">Chọn Chuyến đi / Đoàn khách <span class="text-danger">*</span></label>
+                                <select class="form-select" id="assignment_id" name="assignment_id" required>
+                                    <option value="">-- Chọn Chuyến đi --</option>
+                                    <?php foreach ($assignments as $item): ?>
+                                        <option value="<?= $item['assignment_id'] ?>" <?= ($preSelectedAssignmentId == $item['assignment_id']) ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($item['tour_name']) ?> (Khởi hành: <?= date('d/m/Y', strtotime($item['start_date'])) ?>)
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                                <small class="text-muted">Lưu ý: Bạn đang viết nhật ký cho một đoàn khách cụ thể.</small>
                             </div>
 
                             <!-- Date & Guide -->
@@ -71,9 +72,9 @@ $preSelectedTourId = $_GET['tour_id'] ?? null;
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-medium">Hướng dẫn viên</label>
-                                    <input type="text" class="form-control bg-light" value="<?= $_SESSION['user_name'] ?? 'Admin' ?>" readonly>
-                                    <input type="hidden" name="guide_id" value="<?= $_SESSION['guide_id'] ?? '' ?>">
-                                    <small class="text-muted">Tự động lấy theo tài khoản đăng nhập</small>
+                                    <input type="text" class="form-control bg-light" value="<?= $selectedAssignment['guide_name'] ?? ($_SESSION['user_name'] ?? 'Admin') ?>" readonly>
+                                    <input type="hidden" name="guide_id" value="<?= $selectedAssignment['guide_id'] ?? ($_SESSION['guide_id'] ?? '') ?>">
+                                    <small class="text-muted">Tự động lấy theo HDV phụ trách đoàn này</small>
                                 </div>
                             </div>
 
@@ -125,7 +126,7 @@ $preSelectedTourId = $_GET['tour_id'] ?? null;
 
                             <!-- Actions -->
                             <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                                <a href="<?= $preSelectedTourId ? BASE_URL_ADMIN . '&action=tours_logs/tour_detail&id=' . $preSelectedTourId : BASE_URL_ADMIN . '&action=tours_logs' ?>" class="btn btn-light">
+                                <a href="<?= $preSelectedAssignmentId ? BASE_URL_ADMIN . '&action=tours_logs/tour_detail&assignment_id=' . $preSelectedAssignmentId : BASE_URL_ADMIN . '&action=tours_logs' ?>" class="btn btn-light">
                                     <i class="fas fa-arrow-left me-2"></i>Quay lại
                                 </a>
                                 <button type="submit" class="btn btn-primary px-4">
