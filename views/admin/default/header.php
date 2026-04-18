@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="<?= BASE_ASSETS_ADMIN ?>css/admin-dashboard.css">
     <link rel="stylesheet" href="<?= BASE_ASSETS_ADMIN ?>css/sidebar.css">
     <link rel="stylesheet" href="<?= BASE_ASSETS_ADMIN ?>css/tours.css">
-    <link rel="stylesheet" href="<?= BASE_ASSETS_ADMIN ?>css/tours-modern.css">
+    <link rel="stylesheet" href="<?= BASE_ASSETS_ADMIN ?>css/tours-modern.css?v=1.3">
     <link rel="stylesheet" href="<?= BASE_ASSETS_ADMIN ?>css/tour_logs.css">
     <link rel="stylesheet" href="<?= BASE_ASSETS_ADMIN ?>css/design-system.css">
     <link rel="stylesheet" href="<?= BASE_ASSETS_ADMIN ?>css/components.css">

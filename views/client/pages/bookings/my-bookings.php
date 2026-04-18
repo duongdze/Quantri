@@ -22,6 +22,23 @@ $statusMap = [
         </ol>
     </nav>
 
+    <!-- BK_19: Alert messages -->
+    <?php if (isset($_SESSION['success'])): ?>
+        <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+            <i class="fas fa-check-circle me-2"></i><?= $_SESSION['success'] ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <?php unset($_SESSION['success']); ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['error'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i><?= $_SESSION['error'] ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <?php unset($_SESSION['error']); ?>
+        </div>
+    <?php endif; ?>
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold mb-0"><i class="fas fa-ticket-alt me-2 text-primary"></i>Đơn hàng của tôi</h2>
         <a href="<?= BASE_URL ?>?action=my-account" class="btn btn-outline-secondary rounded-pill btn-sm">
@@ -78,12 +95,24 @@ $statusMap = [
                             </div>
                             <!-- Price & Action -->
                             <div class="col-auto text-end">
-                                <div class="fw-bold text-primary fs-5 mb-2">
+                                <div class="fw-bold text-primary fs-5 mb-1">
                                     <?= number_format($b['total_price'] ?? $b['final_price'] ?? 0, 0, ',', '.') ?>đ
                                 </div>
-                                <a href="<?= BASE_URL ?>?action=booking-detail&code=<?= $code ?>" class="btn btn-outline-primary btn-sm rounded-pill">
+                                <?php if ($b['status'] === 'da_huy' && !empty($b['refund_amount'])): ?>
+                                    <div class="text-danger small fw-medium mb-2">
+                                        <i class="fas fa-undo-alt me-1"></i>Hoàn: <?= number_format($b['refund_amount'], 0, ',', '.') ?>đ (<?= $b['refund_percentage'] ?>%)
+                                    </div>
+                                <?php endif; ?>
+                                <a href="<?= BASE_URL ?>?action=booking-detail&code=<?= $code ?>" class="btn btn-outline-primary btn-sm rounded-pill px-3">
                                     Xem chi tiết
                                 </a>
+                                <?php if (in_array($b['status'], ['pending', 'cho_xac_nhan'])): ?>
+                                    <a href="<?= BASE_URL ?>?action=booking-cancel&code=<?= $code ?>" 
+                                       class="btn btn-outline-danger btn-sm rounded-pill px-3 ms-1"
+                                       onclick="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')">
+                                        Hủy đơn
+                                    </a>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

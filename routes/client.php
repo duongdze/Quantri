@@ -199,6 +199,12 @@ switch ($action) {
         $controller->downloadInvoice();
         break;
 
+    case 'booking-cancel':
+        require_once 'controller/client/BookingController.php';
+        $controller = new ClientBookingController();
+        $controller->cancel();
+        break;
+
     // ─── 404 ───
     default:
 

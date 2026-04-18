@@ -52,6 +52,7 @@ class BusCompanyController
 
             if (!empty($errors)) {
                 $_SESSION['errors'] = $errors;
+                $_SESSION['error'] = $errors['common'] ?? 'Vui lòng kiểm tra lại thông tin!';
                 $_SESSION['old'] = $_POST;
                 header('Location: ' . BASE_URL_ADMIN . '&action=bus-companies/create');
                 exit;
@@ -149,6 +150,7 @@ class BusCompanyController
 
             if (!empty($errors)) {
                 $_SESSION['errors'] = $errors;
+                $_SESSION['error'] = $errors['common'] ?? 'Vui lòng kiểm tra lại thông tin!';
                 $_SESSION['old'] = $_POST;
                 header('Location: ' . BASE_URL_ADMIN . '&action=bus-companies/edit&id=' . $id);
                 exit;
@@ -217,6 +219,25 @@ class BusCompanyController
                 exit;
             }
 
+            // PT_08: Check if bus company is linked to any tours or bookings
+            $pdo = BaseModel::getPdo();
+            
+            // Check in tour_vehicles
+            $stmt1 = $pdo->prepare("SELECT COUNT(*) FROM tour_vehicles WHERE bus_company_id = :id");
+            $stmt1->execute(['id' => $id]);
+            $count1 = (int)$stmt1->fetchColumn();
+
+            // Check in bookings
+            $stmt2 = $pdo->prepare("SELECT COUNT(*) FROM bookings WHERE bus_company_id = :id");
+            $stmt2->execute(['id' => $id]);
+            $count2 = (int)$stmt2->fetchColumn();
+
+            if ($count1 > 0 || $count2 > 0) {
+                $_SESSION['error'] = "Không thể xóa đối tác đang trong quá trình phục vụ tour. Vui lòng gỡ liên kết trước";
+                header('Location: ' . BASE_URL_ADMIN . '&action=bus-companies');
+                exit;
+            }
+
             $result = $this->model->delete('id = :id', ['id' => $id]);
 
             if ($result) {
@@ -263,20 +284,17 @@ class BusCompanyController
     {
         $errors = [];
 
-        if (empty($data['company_code'])) {
+        // PT_03: Validate required fields (Name and Phone) - Strict check with trim
+        if (empty(trim($data['company_name'] ?? '')) || empty(trim($data['phone'] ?? ''))) {
+            $errors['common'] = 'Vui lòng nhập tên và số điện thoại đối tác';
+        }
+
+        if (empty(trim($data['company_code'] ?? ''))) {
             $errors['company_code'] = 'Vui lòng nhập mã nhà xe!';
         }
 
-        if (empty($data['company_name'])) {
-            $errors['company_name'] = 'Vui lòng nhập tên nhà xe!';
-        }
-
-        if (!empty($data['phone']) && !preg_match('/^[0-9]{10,11}$/', $data['phone'])) {
-            $errors['phone'] = 'Số điện thoại không hợp lệ!';
-        }
-
         if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $errors['email'] = 'Email không hợp lệ!';
+            $errors['email'] = 'Địa chỉ Email không hợp lệ';
         }
 
         return $errors;

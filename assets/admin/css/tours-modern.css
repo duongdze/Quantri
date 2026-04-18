@@ -1871,3 +1871,63 @@
     margin: 0 auto;
   }
 }
+
+/* ============================================
+   STAR RATING SYSTEM (MODERN UPDATE)
+   ============================================ */
+.star-rating {
+  display: flex !important;
+  flex-direction: row-reverse !important;
+  justify-content: flex-end !important;
+  gap: 4px !important;
+  margin: 10px 0 !important;
+}
+
+.star-rating input[type="radio"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+}
+
+.star-rating label {
+  color: #dee2e6 !important; /* light gray hex */
+  font-size: 26px !important;
+  padding: 0 2px !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  margin-bottom: 0 !important;
+  position: static !important;
+  transform: none !important;
+  display: inline-block !important;
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label,
+.star-rating input:checked ~ label {
+  color: #ffc107 !important; /* gold/yellow hex */
+}
+
+.star-rating label:hover {
+  transform: scale(1.2) !important;
+}
+
+/* Display stars in list/index - GLOBAL SPECIFIC */
+div.stars-display {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  white-space: nowrap !important;
+}
+
+div.stars-display i.fas.fa-star {
+  color: #dee2e6 !important; /* default gray */
+  font-size: 14px !important;
+  margin-right: 1px !important;
+}
+
+div.stars-display i.fas.fa-star.filled {
+  color: #ffc107 !important; /* gold yellow */
+}
